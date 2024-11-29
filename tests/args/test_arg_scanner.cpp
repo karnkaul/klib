@@ -1,12 +1,12 @@
-#include <scanner.hpp>
+#include <args/scanner.hpp>
 #include <array>
 
 namespace {
-using namespace cliq;
+using namespace klib::args;
 
 static_assert([] {
 	constexpr auto args = std::array{"-a=b"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -19,7 +19,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-a", "b"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -36,7 +36,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"--abcd=efgh"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -49,7 +49,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"--abcd", "efgh"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -65,7 +65,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-abcd", "e"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -89,7 +89,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-a=b", "-c"};
-	auto scanner = Scanner{args};
+	auto scanner = ArgScanner{args};
 
 	scanner.next(); // skip checking a=b
 

@@ -1,20 +1,20 @@
-#include <ktest/ktest.hpp>
-#include <parser.hpp>
+#include <args/parser.hpp>
+#include <klib/unit_test.hpp>
 #include <array>
 
 namespace {
-using namespace cliq;
+using namespace klib::args;
 
-constexpr auto app_info_v = AppInfo{};
+constexpr auto app_info_v = ParseInfo{};
 
-TEST(parser_empty) {
+TEST(arg_parser_empty) {
 	auto parser = Parser{app_info_v, {}, {}};
 	auto const result = parser.parse({});
 	EXPECT(!result.early_return());
 	EXPECT(result.get_command_name().empty());
 }
 
-TEST(parser_values) {
+TEST(arg_parser_values) {
 	auto run = [](std::span<char const* const> cli_args) {
 		auto parser = Parser{app_info_v, {}, cli_args};
 		auto a = std::string_view{};
@@ -34,7 +34,7 @@ TEST(parser_values) {
 	run(std::array{"-a=foo", "--bar=42"});
 }
 
-TEST(parser_options) {
+TEST(arg_parser_options) {
 	auto run = [](std::span<char const* const> cli_args) {
 		auto parser = Parser{app_info_v, {}, cli_args};
 		auto a = false;
@@ -61,7 +61,7 @@ TEST(parser_options) {
 	run(std::array{"--charlie=42", "-a", "-b", "-d"});
 }
 
-TEST(parser_positionals) {
+TEST(arg_parser_positionals) {
 	static constexpr auto cli_args = std::array{"42", "-5", "fubar"};
 	auto parser = Parser{app_info_v, {}, cli_args};
 	int a{};
@@ -80,7 +80,7 @@ TEST(parser_positionals) {
 	EXPECT(c == "fubar");
 }
 
-TEST(parser_options_positionals) {
+TEST(arg_parser_options_positionals) {
 	static constexpr auto cli_args = std::array{"-ab", "42", "-c", "42", "-5", "foo", "-d=bar"};
 	bool a{};
 	bool b{};
@@ -105,7 +105,7 @@ TEST(parser_options_positionals) {
 	EXPECT(a && b && c == 42 && forty_two == 42 && minus_five == -5 && d == "bar");
 }
 
-TEST(parser_command) {
+TEST(arg_parser_command) {
 	static constexpr auto cli_args = std::array{"--app-flag", "cmd", "--cmd-flag", "cmd-arg"};
 	bool cmd_flag{};
 	std::string_view cmd_arg{};
