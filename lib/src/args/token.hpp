@@ -1,7 +1,7 @@
 #pragma once
 #include <string_view>
 
-namespace klib {
+namespace klib::args {
 enum class TokenType {
 	None,
 	Option,	   // -[-][A-z]+[=[A-z]+]
@@ -43,4 +43,4 @@ constexpr auto to_token(std::string_view const input) -> Token {
 	}
 	return ret;
 }
-} // namespace klib
+} // namespace klib::args

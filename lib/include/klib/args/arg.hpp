@@ -1,17 +1,17 @@
 #pragma once
-#include <klib/arg_binding.hpp>
+#include <klib/args/binding.hpp>
 #include <cstdint>
 #include <span>
 #include <string_view>
 #include <variant>
 
-namespace klib {
+namespace klib::args {
 class Arg;
 
 enum class ArgType : std::int8_t { Optional, Required };
 
 struct ParamOption {
-	ArgBinding binding;
+	Binding binding;
 	void* data;
 	bool is_flag;
 	char letter;
@@ -24,7 +24,7 @@ struct ParamOption {
 
 struct ParamPositional {
 	ArgType arg_type;
-	ArgBinding binding;
+	Binding binding;
 	void* data;
 	bool is_list;
 	std::string_view name;
@@ -51,16 +51,16 @@ class Arg {
 
 	template <ParamT Type>
 	Arg(Type& out, std::string_view const key, std::string_view const help_text = {})
-		: m_param(ParamOption{ArgBinding::create<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
+		: m_param(ParamOption{Binding::create<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
 
 	// Positional arguments
 	template <ParamT Type>
 	Arg(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{type, ArgBinding::create<Type>(), &out, false, name, help_text}) {}
+		: m_param(ParamPositional{type, Binding::create<Type>(), &out, false, name, help_text}) {}
 
 	template <ParamT Type>
 	Arg(std::vector<Type>& out, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{ArgType::Optional, ArgBinding::create<std::vector<Type>>(), &out, true, name, help_text}) {}
+		: m_param(ParamPositional{ArgType::Optional, Binding::create<std::vector<Type>>(), &out, true, name, help_text}) {}
 
 	// Commands
 	Arg(std::span<Arg const> args, std::string_view name, std::string_view help_text = {});
@@ -102,4 +102,4 @@ template <ParamT Type>
 }
 
 [[nodiscard]] inline auto command(std::span<Arg const> args, std::string_view name, std::string_view help_text = {}) -> Arg { return {args, name, help_text}; }
-} // namespace klib
+} // namespace klib::args

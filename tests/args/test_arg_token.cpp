@@ -1,7 +1,7 @@
-#include <arg_token.hpp>
+#include <args/token.hpp>
 
 namespace {
-using namespace klib;
+using namespace klib::args;
 
 static_assert([] {
 	auto const token = to_token("--");

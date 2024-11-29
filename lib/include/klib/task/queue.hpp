@@ -1,11 +1,11 @@
 #pragma once
-#include <klib/task.hpp>
-#include <klib/task_queue_create_info.hpp>
-#include <klib/task_queue_fwd.hpp>
+#include <klib/task/queue_create_info.hpp>
+#include <klib/task/queue_fwd.hpp>
+#include <klib/task/task.hpp>
 #include <memory>
 #include <span>
 
-namespace klib {
+namespace klib::task {
 class Queue {
   public:
 	using CreateInfo = QueueCreateInfo;
@@ -22,7 +22,7 @@ class Queue {
 
 	auto enqueue(Task& task) -> bool;
 	auto enqueue(std::span<Task* const> tasks) -> bool;
-	auto fork_join(std::span<Task* const> tasks) -> TaskStatus;
+	auto fork_join(std::span<Task* const> tasks) -> Task::Status;
 
 	void pause();
 	void resume();
@@ -36,4 +36,4 @@ class Queue {
 	};
 	std::unique_ptr<Impl, Deleter> m_impl{};
 };
-} // namespace klib
+} // namespace klib::task

@@ -17,14 +17,21 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
+  include/klib/args/arg.hpp
+  include/klib/args/binding.hpp
+  include/klib/args/parse_info.hpp
+  include/klib/args/parse_result.hpp
+  include/klib/args/parse.hpp
+
+  include/klib/task/id.hpp
+  include/klib/task/queue_create_info.hpp
+  include/klib/task/queue_fwd.hpp
+  include/klib/task/queue.hpp
+  include/klib/task/status.hpp
+  include/klib/task/task_fwd.hpp
+  include/klib/task/task.hpp
+
   include/klib/c_string.hpp
-  include/klib/task_fwd.hpp
-  include/klib/task_id.hpp
-  include/klib/task_queue_create_info.hpp
-  include/klib/task_queue_fwd.hpp
-  include/klib/task_queue.hpp
-  include/klib/task_status.hpp
-  include/klib/task.hpp
   include/klib/unit_test.hpp
   include/klib/version.hpp
   include/klib/version_str.hpp

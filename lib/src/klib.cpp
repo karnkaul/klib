@@ -97,9 +97,9 @@ auto klib::to_version(CString text) -> Version {
 
 // task
 
-#include <klib/task_queue.hpp>
+#include <klib/task/queue.hpp>
 
-namespace klib {
+namespace klib::task {
 void Task::do_execute() {
 	m_status = Status::Executing;
 	try {
@@ -109,7 +109,7 @@ void Task::do_execute() {
 }
 
 void Task::do_drop() {
-	m_status = TaskStatus::Dropped;
+	m_status = Task::Status::Dropped;
 	finalize();
 }
 
@@ -153,8 +153,8 @@ struct Queue::Impl {
 		if (!can_enqueue(tasks.size())) { return false; }
 		for (auto* task : tasks) {
 			assert(!task->is_busy());
-			if (task->m_id == TaskId::None) { task->m_id = TaskId{++m_prev_id}; }
-			task->m_status = TaskStatus::Queued;
+			if (task->m_id == Task::Id::None) { task->m_id = Task::Id{++m_prev_id}; }
+			task->m_status = Task::Status::Queued;
 			task->m_busy = true;
 		}
 		auto lock = std::unique_lock{m_mutex};
@@ -168,15 +168,15 @@ struct Queue::Impl {
 		return true;
 	}
 
-	auto fork_join(std::span<Task* const> tasks) -> TaskStatus {
-		if (tasks.empty()) { return TaskStatus::None; }
-		if (!enqueue(tasks)) { return TaskStatus::Dropped; }
+	auto fork_join(std::span<Task* const> tasks) -> Task::Status {
+		if (tasks.empty()) { return Task::Status::None; }
+		if (!enqueue(tasks)) { return Task::Status::Dropped; }
 		auto const got_dropped = [](Task* task) {
 			task->wait();
-			return task->m_status == TaskStatus::Dropped;
+			return task->m_status == Task::Status::Dropped;
 		};
-		if (std::ranges::any_of(tasks, got_dropped)) { return TaskStatus::Dropped; }
-		return TaskStatus::Completed;
+		if (std::ranges::any_of(tasks, got_dropped)) { return Task::Status::Dropped; }
+		return Task::Status::Completed;
 	}
 
 	void pause() { m_paused = true; }
@@ -248,7 +248,7 @@ struct Queue::Impl {
 	std::deque<Task*> m_queue{};
 	std::vector<std::jthread> m_threads{};
 
-	std::underlying_type_t<TaskId> m_prev_id{};
+	std::underlying_type_t<Task::Id> m_prev_id{};
 };
 
 void Queue::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
@@ -286,8 +286,8 @@ auto Queue::enqueue(std::span<Task* const> tasks) -> bool {
 	return m_impl->enqueue(tasks);
 }
 
-auto Queue::fork_join(std::span<Task* const> tasks) -> TaskStatus {
-	if (!m_impl) { return TaskStatus::None; }
+auto Queue::fork_join(std::span<Task* const> tasks) -> Task::Status {
+	if (!m_impl) { return Task::Status::None; }
 	return m_impl->fork_join(tasks);
 }
 
@@ -310,16 +310,17 @@ void Queue::drop_enqueued() {
 	if (!m_impl) { return; }
 	m_impl->drop_enqueued();
 }
-} // namespace klib
+} // namespace klib::task
 
 // arg*
 
-#include <arg_parser.hpp>
-#include <klib/arg_parse.hpp>
+#include <args/parser.hpp>
+#include <klib/args/parse.hpp>
 
 namespace klib {
+namespace args {
 Arg::Arg(bool& out, std::string_view const key, std::string_view const help_text)
-	: m_param(ParamOption{ArgBinding::create<bool>(), &out, true, to_letter(key), to_word(key), help_text}) {}
+	: m_param(ParamOption{Binding::create<bool>(), &out, true, to_letter(key), to_word(key), help_text}) {}
 
 Arg::Arg(std::span<Arg const> args, std::string_view const name, std::string_view const help_text) : m_param(ParamCommand{args, name, help_text}) {}
 
@@ -346,53 +347,53 @@ struct ErrorPrinter {
 		std::print(stderr, "{}", str);
 	}
 
-	[[nodiscard]] auto invalid_value(std::string_view const input, std::string_view const value) -> ArgParseError {
+	[[nodiscard]] auto invalid_value(std::string_view const input, std::string_view const value) -> ParseError {
 		helpline = false;
 		std::format_to(std::back_inserter(str), "invalid {}: '{}'\n", input, value);
-		return ArgParseError::InvalidArgument;
+		return ParseError::InvalidArgument;
 	}
 
-	[[nodiscard]] auto invalid_option(char const letter) -> ArgParseError {
+	[[nodiscard]] auto invalid_option(char const letter) -> ParseError {
 		std::format_to(std::back_inserter(str), "invalid option -- '{}'\n", letter);
-		return ArgParseError::InvalidOption;
+		return ParseError::InvalidOption;
 	}
 
-	[[nodiscard]] auto unrecognized_option(std::string_view const input) -> ArgParseError {
+	[[nodiscard]] auto unrecognized_option(std::string_view const input) -> ParseError {
 		std::format_to(std::back_inserter(str), "unrecognized option '--{}'\n", input);
-		return ArgParseError::InvalidOption;
+		return ParseError::InvalidOption;
 	}
 
-	[[nodiscard]] auto unrecognized_command(std::string_view const input) -> ArgParseError {
+	[[nodiscard]] auto unrecognized_command(std::string_view const input) -> ParseError {
 		std::format_to(std::back_inserter(str), "unrecognized command '{}'\n", input);
-		return ArgParseError::InvalidCommand;
+		return ParseError::InvalidCommand;
 	}
 
-	[[nodiscard]] auto extraneous_argument(std::string_view const input) -> ArgParseError {
+	[[nodiscard]] auto extraneous_argument(std::string_view const input) -> ParseError {
 		std::format_to(std::back_inserter(str), "extraneous argument '{}'\n", input);
-		return ArgParseError::InvalidArgument;
+		return ParseError::InvalidArgument;
 	}
 
-	[[nodiscard]] auto option_requires_argument(std::string_view const input) -> ArgParseError {
+	[[nodiscard]] auto option_requires_argument(std::string_view const input) -> ParseError {
 		if (input.size() == 1) {
 			std::format_to(std::back_inserter(str), "option requires an argument -- '{}'\n", input);
 		} else {
 			std::format_to(std::back_inserter(str), "option '{}' requires an argument\n", input);
 		}
-		return ArgParseError::MissingArgument;
+		return ParseError::MissingArgument;
 	}
 
-	[[nodiscard]] auto option_is_flag(std::string_view const input) -> ArgParseError {
+	[[nodiscard]] auto option_is_flag(std::string_view const input) -> ParseError {
 		if (input.size() == 1) {
 			std::format_to(std::back_inserter(str), "option does not take an argument -- '{}'\n", input);
 		} else {
 			std::format_to(std::back_inserter(str), "option '{}' does not take an argument\n", input);
 		}
-		return ArgParseError::InvalidArgument;
+		return ParseError::InvalidArgument;
 	}
 
-	[[nodiscard]] auto missing_argument(std::string_view name) -> ArgParseError {
+	[[nodiscard]] auto missing_argument(std::string_view name) -> ParseError {
 		std::format_to(std::back_inserter(str), "missing {}\n", name);
-		return ArgParseError::MissingArgument;
+		return ParseError::MissingArgument;
 	}
 
 	void append_error_prefix() {
@@ -488,7 +489,7 @@ void append_command_list(std::ostream& out, std::size_t const width, std::span<A
 	}
 }
 
-void print_help(ArgParseInfo const& info, std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
+void print_help(ParseInfo const& info, std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
 	auto out = std::ostringstream{};
 	if (!info.help_text.empty()) { out << info.help_text << "\n"; }
 
@@ -549,12 +550,12 @@ void print_usage(std::string_view const exe, std::string_view const cmd, std::sp
 }
 } // namespace
 
-auto Parser::parse(std::span<Arg const> args) -> ArgParseResult {
+auto Parser::parse(std::span<Arg const> args) -> ParseResult {
 	m_args = args;
 	m_cursor = {};
 	m_has_commands = std::ranges::any_of(m_args, [](Arg const& a) { return std::holds_alternative<ParamCommand>(a.get_param()); });
 
-	auto result = ArgParseResult{};
+	auto result = ParseResult{};
 
 	while (m_scanner.next()) {
 		result = parse_next();
@@ -569,7 +570,7 @@ auto Parser::parse(std::span<Arg const> args) -> ArgParseResult {
 	return result;
 }
 
-auto Parser::select_command() -> ArgParseResult {
+auto Parser::select_command() -> ParseResult {
 	auto const name = m_scanner.get_value();
 	auto const* cmd = find_command(name);
 	if (cmd == nullptr) { return ErrorPrinter{m_exe_name}.unrecognized_command(name); }
@@ -579,7 +580,7 @@ auto Parser::select_command() -> ArgParseResult {
 	return {};
 }
 
-auto Parser::parse_next() -> ArgParseResult {
+auto Parser::parse_next() -> ParseResult {
 	switch (m_scanner.get_token_type()) {
 	case TokenType::Argument: return parse_argument();
 	case TokenType::Option: return parse_option();
@@ -591,7 +592,7 @@ auto Parser::parse_next() -> ArgParseResult {
 	return {};
 }
 
-auto Parser::parse_option() -> ArgParseResult {
+auto Parser::parse_option() -> ParseResult {
 	switch (m_scanner.get_option_type()) {
 	case OptionType::Letters: return parse_letters();
 	case OptionType::Word: return parse_word();
@@ -603,7 +604,7 @@ auto Parser::parse_option() -> ArgParseResult {
 	return {};
 }
 
-auto Parser::parse_letters() -> ArgParseResult {
+auto Parser::parse_letters() -> ParseResult {
 	auto letter = char{};
 	auto is_last = false;
 	while (m_scanner.next_letter(letter, is_last)) {
@@ -620,15 +621,15 @@ auto Parser::parse_letters() -> ArgParseResult {
 	return {};
 }
 
-auto Parser::parse_word() -> ArgParseResult {
+auto Parser::parse_word() -> ParseResult {
 	auto const word = m_scanner.get_key();
-	if (try_builtin(word)) { return ArgParseExecutedBuiltin{}; }
+	if (try_builtin(word)) { return ExecutedBuiltin{}; }
 	auto const* option = find_option(word);
 	if (option == nullptr) { return ErrorPrinter{m_exe_name, get_cmd_name()}.unrecognized_option(word); }
 	return parse_last_option(*option, word);
 }
 
-auto Parser::parse_last_option(ParamOption const& option, std::string_view input) -> ArgParseResult {
+auto Parser::parse_last_option(ParamOption const& option, std::string_view input) -> ParseResult {
 	if (option.is_flag) {
 		if (!m_scanner.get_value().empty()) { return ErrorPrinter{m_exe_name, get_cmd_name()}.option_is_flag(input); }
 		[[maybe_unused]] auto const unused = option.assign({});
@@ -646,12 +647,12 @@ auto Parser::parse_last_option(ParamOption const& option, std::string_view input
 	return {};
 }
 
-auto Parser::parse_argument() -> ArgParseResult {
+auto Parser::parse_argument() -> ParseResult {
 	if (m_has_commands && m_cursor.cmd == nullptr) { return select_command(); }
 	return parse_positional();
 }
 
-auto Parser::parse_positional() -> ArgParseResult {
+auto Parser::parse_positional() -> ParseResult {
 	auto const* pos = next_positional();
 	if (pos == nullptr) { return ErrorPrinter{m_exe_name, get_cmd_name()}.extraneous_argument(m_scanner.get_value()); }
 	if (!pos->assign(m_scanner.get_value())) { return ErrorPrinter{m_exe_name, get_cmd_name()}.invalid_value(pos->name, m_scanner.get_value()); }
@@ -716,7 +717,7 @@ auto Parser::next_positional() -> ParamPositional const* {
 	return nullptr;
 }
 
-auto Parser::check_required() -> ArgParseResult {
+auto Parser::check_required() -> ParseResult {
 	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{m_exe_name}.missing_argument("command"); }
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
@@ -726,9 +727,9 @@ auto Parser::check_required() -> ArgParseResult {
 
 	return {};
 }
-} // namespace klib
+} // namespace args
 
-auto klib::parse_args(ArgParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ArgParseResult {
+auto args::parse_args(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
 	auto exe_name = std::string_view{"<app>"};
 	auto cli_args = std::span{argv, std::size_t(argc)};
 	if (!cli_args.empty()) {
@@ -738,3 +739,4 @@ auto klib::parse_args(ArgParseInfo const& info, std::span<Arg const> args, int a
 	auto parser = Parser{info, exe_name, cli_args};
 	return parser.parse(args);
 }
+} // namespace klib

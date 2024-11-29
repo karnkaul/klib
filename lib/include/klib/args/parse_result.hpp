@@ -1,27 +1,27 @@
 #pragma once
-#include <klib/arg.hpp>
+#include <klib/args/arg.hpp>
 #include <cstdlib>
 #include <optional>
 
-namespace klib {
+namespace klib::args {
 /// \brief Error parsing passed arguments.
-enum class ArgParseError : int {
+enum class ParseError : int {
 	InvalidCommand = 100,
 	InvalidOption,
 	InvalidArgument,
 	MissingArgument,
 };
 
-struct ArgParseExecutedBuiltin {};
+struct ExecutedBuiltin {};
 
 /// \brief Result of parsing args / running selected command.
-class ArgParseResult {
+class ParseResult {
   public:
-	ArgParseResult() = default;
+	ParseResult() = default;
 
-	constexpr ArgParseResult(std::string_view command_name) : m_command_name(command_name) {}
-	constexpr ArgParseResult(ArgParseError parse_error) : m_parse_error(parse_error) {}
-	constexpr ArgParseResult(ArgParseExecutedBuiltin const& /*eb*/) : m_executed_builtin(true) {}
+	constexpr ParseResult(std::string_view command_name) : m_command_name(command_name) {}
+	constexpr ParseResult(ParseError parse_error) : m_parse_error(parse_error) {}
+	constexpr ParseResult(ExecutedBuiltin const& /*eb*/) : m_executed_builtin(true) {}
 
 	/// \brief Check if clap executed a builtin option (like "--help")
 	/// \returns true if clap executed a builtin option.
@@ -33,7 +33,7 @@ class ArgParseResult {
 
 	/// \brief Get the error that occurred during argument parsing.
 	/// \returns Argument parsing error, if any.
-	[[nodiscard]] constexpr auto get_parse_error() const -> std::optional<ArgParseError> { return m_parse_error; }
+	[[nodiscard]] constexpr auto get_parse_error() const -> std::optional<ParseError> { return m_parse_error; }
 
 	/// \brief Get the return code for main.
 	/// \returns EXIT_FAILURE on parse error, else EXIT_SUCCESS.
@@ -48,11 +48,11 @@ class ArgParseResult {
 	constexpr explicit operator bool() const { return !early_return(); }
 
 	/// \brief Compare equality with another ParseResult.
-	auto operator==(ArgParseResult const& rhs) const -> bool = default;
+	auto operator==(ParseResult const& rhs) const -> bool = default;
 
   private:
 	std::string_view m_command_name{};
-	std::optional<ArgParseError> m_parse_error{};
+	std::optional<ParseError> m_parse_error{};
 	bool m_executed_builtin{};
 };
-} // namespace klib
+} // namespace klib::args

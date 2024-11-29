@@ -1,11 +1,11 @@
-#include <arg_parser.hpp>
+#include <args/parser.hpp>
 #include <klib/unit_test.hpp>
 #include <array>
 
 namespace {
-using namespace klib;
+using namespace klib::args;
 
-constexpr auto app_info_v = ArgParseInfo{};
+constexpr auto app_info_v = ParseInfo{};
 
 TEST(arg_parser_empty) {
 	auto parser = Parser{app_info_v, {}, {}};

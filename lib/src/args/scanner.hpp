@@ -1,8 +1,8 @@
 #pragma once
-#include <arg_token.hpp>
+#include <args/token.hpp>
 #include <span>
 
-namespace klib {
+namespace klib::args {
 class ArgScanner {
   public:
 	explicit constexpr ArgScanner(std::span<char const* const> args) : m_args(args) {
@@ -84,4 +84,4 @@ class ArgScanner {
 	Token m_next{};
 	bool m_force_args{};
 };
-} // namespace klib
+} // namespace klib::args

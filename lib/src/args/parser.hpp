@@ -1,15 +1,17 @@
 #pragma once
-#include <arg_scanner.hpp>
-#include <klib/arg_parse_info.hpp>
-#include <klib/arg_parse_result.hpp>
+#include <args/scanner.hpp>
+#include <klib/args/parse_info.hpp>
+#include <klib/args/parse_result.hpp>
 
-namespace klib {
+namespace klib::args {
 class Parser {
   public:
-	explicit Parser(ArgParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
+	using Result = ParseResult;
+
+	explicit Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
 		: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {}
 
-	[[nodiscard]] auto parse(std::span<Arg const> args) -> ArgParseResult;
+	[[nodiscard]] auto parse(std::span<Arg const> args) -> Result;
 
   private:
 	struct Cursor {
@@ -17,14 +19,14 @@ class Parser {
 		std::size_t next_pos{};
 	};
 
-	auto select_command() -> ArgParseResult;
-	auto parse_next() -> ArgParseResult;
-	auto parse_option() -> ArgParseResult;
-	auto parse_letters() -> ArgParseResult;
-	auto parse_word() -> ArgParseResult;
-	auto parse_last_option(ParamOption const& option, std::string_view input) -> ArgParseResult;
-	auto parse_argument() -> ArgParseResult;
-	auto parse_positional() -> ArgParseResult;
+	auto select_command() -> Result;
+	auto parse_next() -> Result;
+	auto parse_option() -> Result;
+	auto parse_letters() -> Result;
+	auto parse_word() -> Result;
+	auto parse_last_option(ParamOption const& option, std::string_view input) -> Result;
+	auto parse_argument() -> Result;
+	auto parse_positional() -> Result;
 
 	[[nodiscard]] auto try_builtin(std::string_view word) const -> bool;
 	[[nodiscard]] auto find_option(char letter) const -> ParamOption const*;
@@ -33,12 +35,12 @@ class Parser {
 
 	[[nodiscard]] auto next_positional() -> ParamPositional const*;
 
-	[[nodiscard]] auto check_required() -> ArgParseResult;
+	[[nodiscard]] auto check_required() -> Result;
 
 	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
 	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
 
-	ArgParseInfo const& m_info;
+	ParseInfo const& m_info;
 	std::string_view m_exe_name;
 
 	ArgScanner m_scanner;
@@ -46,4 +48,4 @@ class Parser {
 	Cursor m_cursor{};
 	bool m_has_commands{};
 };
-} // namespace klib
+} // namespace klib::args

@@ -1,11 +1,11 @@
-#include <klib/task_queue.hpp>
+#include <klib/task/queue.hpp>
 #include <klib/unit_test.hpp>
 #include <array>
 #include <random>
 #include <thread>
 
 namespace {
-using namespace klib;
+using namespace klib::task;
 using namespace std::chrono_literals;
 
 constexpr auto create_info_v = QueueCreateInfo{
@@ -75,13 +75,13 @@ TEST(task_queue_task_wait) {
 	WaitTask::s_executed = 0;
 	auto task = WaitTask{200ms};
 	queue.enqueue(task);
-	EXPECT(task.get_status() == TaskStatus::Queued);
+	EXPECT(task.get_status() == Task::Status::Queued);
 	EXPECT(task.is_busy());
 	queue.resume();
 	task.wait();
 	task.wait();
 	EXPECT(WaitTask::s_executed == 1);
-	EXPECT(task.get_status() == TaskStatus::Completed);
+	EXPECT(task.get_status() == Task::Status::Completed);
 	EXPECT(!task.is_busy());
 	EXPECT(queue.is_empty());
 }
@@ -95,7 +95,7 @@ TEST(task_queue_task_drop) {
 	EXPECT(task.is_busy());
 	queue.drop_enqueued();
 	EXPECT(WaitTask::s_executed == 0);
-	EXPECT(task.get_status() == TaskStatus::Dropped);
+	EXPECT(task.get_status() == Task::Status::Dropped);
 	EXPECT(queue.is_empty());
 }
 
@@ -105,23 +105,23 @@ TEST(task_queue_task_rerun) {
 	WaitTask::s_executed = 0;
 	auto task = WaitTask{200ms};
 	queue.enqueue(task);
-	EXPECT(task.get_status() == TaskStatus::Queued);
+	EXPECT(task.get_status() == Task::Status::Queued);
 	EXPECT(task.is_busy());
 	queue.resume();
 	task.wait();
 	EXPECT(WaitTask::s_executed == 1);
-	EXPECT(task.get_status() == TaskStatus::Completed);
+	EXPECT(task.get_status() == Task::Status::Completed);
 	EXPECT(!task.is_busy());
 	EXPECT(queue.is_empty());
 
 	queue.pause();
 	queue.enqueue(task);
-	EXPECT(task.get_status() == TaskStatus::Queued);
+	EXPECT(task.get_status() == Task::Status::Queued);
 	EXPECT(task.is_busy());
 	queue.resume();
 	task.wait();
 	EXPECT(WaitTask::s_executed == 2);
-	EXPECT(task.get_status() == TaskStatus::Completed);
+	EXPECT(task.get_status() == Task::Status::Completed);
 	EXPECT(!task.is_busy());
 	EXPECT(queue.is_empty());
 }

@@ -1,8 +1,8 @@
-#include <arg_scanner.hpp>
+#include <args/scanner.hpp>
 #include <array>
 
 namespace {
-using namespace klib;
+using namespace klib::args;
 
 static_assert([] {
 	constexpr auto args = std::array{"-a=b"};

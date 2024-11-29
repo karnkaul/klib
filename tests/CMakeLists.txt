@@ -1,4 +1,4 @@
-file(GLOB sources LIST_DIRECTORIES false "*.cpp")
+file(GLOB_RECURSE sources LIST_DIRECTORIES false "*.cpp")
 
 if(NOT "${sources}" STREQUAL "")
   add_executable(${PROJECT_NAME}-tests)

@@ -1,15 +1,15 @@
 #pragma once
 #include <klib/build_version.hpp>
-#include <klib/task_fwd.hpp>
-#include <klib/task_id.hpp>
-#include <klib/task_status.hpp>
+#include <klib/task/id.hpp>
+#include <klib/task/status.hpp>
+#include <klib/task/task_fwd.hpp>
 #include <atomic>
 
-namespace klib {
+namespace klib::task {
 class Task {
   public:
-	using Status = TaskStatus;
-	using Id = TaskId;
+	using Status = task::Status;
+	using Id = task::Id;
 
 	virtual ~Task() = default;
 
@@ -40,4 +40,4 @@ class Task {
 
 	friend class Queue;
 };
-} // namespace klib
+} // namespace klib::task

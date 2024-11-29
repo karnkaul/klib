@@ -1,9 +1,9 @@
-#include <klib/arg.hpp>
+#include <klib/args/arg.hpp>
 #include <klib/unit_test.hpp>
 #include <ranges>
 
 namespace {
-using namespace klib;
+using namespace klib::args;
 
 TEST(arg_flag) {
 	bool flag{};

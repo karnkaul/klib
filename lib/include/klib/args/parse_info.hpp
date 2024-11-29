@@ -1,9 +1,9 @@
 #pragma once
 #include <string_view>
 
-namespace klib {
+namespace klib::args {
 /// \brief Application info.
-struct ArgParseInfo {
+struct ParseInfo {
 	/// \brief One liner app description.
 	std::string_view help_text{};
 	/// \brief Version text.
@@ -11,4 +11,4 @@ struct ArgParseInfo {
 	/// \brief Help text epilogue.
 	std::string_view epilogue{};
 };
-} // namespace klib
+} // namespace klib::args
