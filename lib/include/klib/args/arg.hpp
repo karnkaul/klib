@@ -9,6 +9,8 @@ namespace klib::args {
 class Arg;
 
 enum class ArgType : std::int8_t { Optional, Required };
+constexpr auto optional_v = ArgType::Optional;
+constexpr auto required_v = ArgType::Required;
 
 struct ParamOption {
 	Binding binding;
@@ -30,7 +32,7 @@ struct ParamPositional {
 	std::string_view name;
 	std::string_view help_text;
 
-	[[nodiscard]] constexpr auto is_required() const -> bool { return arg_type == ArgType::Required; }
+	[[nodiscard]] constexpr auto is_required() const -> bool { return arg_type == required_v; }
 
 	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return binding.assign(data, value); }
 	[[nodiscard]] auto to_string() const -> std::string { return binding.to_string(data); }
@@ -60,7 +62,7 @@ class Arg {
 
 	template <ParamT Type>
 	Arg(std::vector<Type>& out, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{ArgType::Optional, Binding::create<std::vector<Type>>(), &out, true, name, help_text}) {}
+		: m_param(ParamPositional{optional_v, Binding::create<std::vector<Type>>(), &out, true, name, help_text}) {}
 
 	// Commands
 	Arg(std::span<Arg const> args, std::string_view name, std::string_view help_text = {});
