@@ -5,7 +5,7 @@
 #include <klib/build_version.hpp>
 
 namespace klib::args {
-[[nodiscard]] auto parse_args(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult;
+[[nodiscard]] auto parse(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult;
 
-[[nodiscard]] inline auto parse_args(std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult { return parse_args({}, args, argc, argv); }
+[[nodiscard]] inline auto parse(std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult { return parse({}, args, argc, argv); }
 } // namespace klib::args
