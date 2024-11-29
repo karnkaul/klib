@@ -1,9 +1,9 @@
-#include <cliq/arg.hpp>
-#include <ktest/ktest.hpp>
+#include <klib/arg.hpp>
+#include <klib/unit_test.hpp>
 #include <ranges>
 
 namespace {
-using namespace cliq;
+using namespace klib;
 
 TEST(arg_flag) {
 	bool flag{};
