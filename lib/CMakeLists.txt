@@ -31,7 +31,10 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/task/task_fwd.hpp
   include/klib/task/task.hpp
 
+  include/klib/byte_count.hpp
   include/klib/c_string.hpp
+  include/klib/concepts.hpp
+  include/klib/constants.hpp
   include/klib/unit_test.hpp
   include/klib/version.hpp
   include/klib/version_str.hpp
