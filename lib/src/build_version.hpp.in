@@ -1,6 +1,0 @@
-#pragma once
-#include <string_view>
-
-namespace klib {
-constexpr std::string_view version_v{"@PROJECT_VERSION@"};
-}
