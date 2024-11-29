@@ -6,7 +6,7 @@ using namespace klib::args;
 
 static_assert([] {
 	constexpr auto args = std::array{"-a=b"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -19,7 +19,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-a", "b"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -36,7 +36,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"--abcd=efgh"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -49,7 +49,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"--abcd", "efgh"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -65,7 +65,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-abcd", "e"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	if (!scanner.next()) { return false; }
 	if (scanner.get_token_type() != TokenType::Option) { return false; }
@@ -89,7 +89,7 @@ static_assert([] {
 
 static_assert([] {
 	constexpr auto args = std::array{"-a=b", "-c"};
-	auto scanner = ArgScanner{args};
+	auto scanner = Scanner{args};
 
 	scanner.next(); // skip checking a=b
 

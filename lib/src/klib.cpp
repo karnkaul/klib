@@ -314,7 +314,7 @@ void Queue::drop_enqueued() {
 auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::hardware_concurrency()); }
 } // namespace klib
 
-// arg*
+// args
 
 #include <args/parser.hpp>
 #include <klib/args/parse.hpp>
