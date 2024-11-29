@@ -18,6 +18,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/c_string.hpp
+  include/klib/task_fwd.hpp
+  include/klib/task_id.hpp
+  include/klib/task_queue_create_info.hpp
+  include/klib/task_queue_fwd.hpp
+  include/klib/task_queue.hpp
+  include/klib/task_status.hpp
+  include/klib/task.hpp
   include/klib/unit_test.hpp
   include/klib/version.hpp
   include/klib/version_str.hpp
