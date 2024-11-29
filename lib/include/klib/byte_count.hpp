@@ -45,7 +45,7 @@ constexpr auto operator<=>(ByteCount<FactorL> const a, ByteCount<FactorR> const 
 
 template <std::uint64_t FactorL, std::uint64_t FactorR>
 constexpr auto operator==(ByteCount<FactorL> const a, ByteCount<FactorR> const b) -> bool {
-	return a.count() * a.factor_v == b.count() * b.factor_v;
+	return a.count() * std::int64_t(a.factor_v) == b.count() * std::int64_t(b.factor_v);
 }
 
 template <std::uint64_t Factor>
@@ -70,14 +70,14 @@ constexpr auto operator*(ByteCount<Factor> const a, ByteCount<Factor> const b) -
 }
 
 template <std::uint64_t Factor>
-constexpr auto operator/(ByteCount<Factor> const a, std::uint64_t const divisor) -> ByteCount<Factor> {
+constexpr auto operator/(ByteCount<Factor> const a, std::int64_t const divisor) -> ByteCount<Factor> {
 	auto ret = a;
 	ret /= divisor;
 	return ret;
 }
 
 template <std::uint64_t Factor>
-constexpr auto operator/(ByteCount<Factor> const a, ByteCount<Factor> const b) -> std::uint64_t {
+constexpr auto operator/(ByteCount<Factor> const a, ByteCount<Factor> const b) -> std::int64_t {
 	return a.count() / b.count();
 }
 
