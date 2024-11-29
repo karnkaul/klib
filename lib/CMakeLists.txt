@@ -34,6 +34,8 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/c_string.hpp
   include/klib/concepts.hpp
   include/klib/constants.hpp
+  include/klib/fixed_string.hpp
+  include/klib/str_buf.hpp
   include/klib/unit_test.hpp
   include/klib/version.hpp
   include/klib/version_str.hpp
@@ -45,7 +47,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 get_target_property(sources ${PROJECT_NAME} SOURCES)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
-configure_file(src/build_version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
+configure_file(cmake_src/build_version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
 source_group("include/${PROJECT_NAME}" FILES "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
 
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include" FILES
