@@ -10,8 +10,6 @@ class Queue {
   public:
 	using CreateInfo = QueueCreateInfo;
 
-	static auto get_max_threads() -> ThreadCount;
-
 	explicit Queue(CreateInfo create_info = {});
 
 	[[nodiscard]] auto thread_count() const -> ThreadCount;

@@ -99,7 +99,8 @@ auto klib::to_version(CString text) -> Version {
 
 #include <klib/task/queue.hpp>
 
-namespace klib::task {
+namespace klib {
+namespace task {
 void Task::do_execute() {
 	m_status = Status::Executing;
 	try {
@@ -253,16 +254,13 @@ struct Queue::Impl {
 
 void Queue::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
 
-auto Queue::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::hardware_concurrency()); }
-
 Queue::Queue(CreateInfo create_info) {
-	if (create_info.thread_count == ThreadCount::Default) { create_info.thread_count = ThreadCount(get_max_threads()); }
 	create_info.thread_count = std::clamp(create_info.thread_count, ThreadCount::Minimum, get_max_threads());
 	m_impl.reset(new Impl(create_info)); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 auto Queue::thread_count() const -> ThreadCount {
-	if (!m_impl) { return ThreadCount::Default; }
+	if (!m_impl) { return ThreadCount{0}; }
 	return m_impl->thread_count();
 }
 
@@ -310,7 +308,10 @@ void Queue::drop_enqueued() {
 	if (!m_impl) { return; }
 	m_impl->drop_enqueued();
 }
-} // namespace klib::task
+} // namespace task
+
+auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::hardware_concurrency()); }
+} // namespace klib
 
 // arg*
 
@@ -729,7 +730,7 @@ auto Parser::check_required() -> ParseResult {
 }
 } // namespace args
 
-auto args::parse_args(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
+auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
 	auto exe_name = std::string_view{"<app>"};
 	auto cli_args = std::span{argv, std::size_t(argc)};
 	if (!cli_args.empty()) {
