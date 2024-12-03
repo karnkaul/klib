@@ -3,6 +3,10 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  $<$<CONFIG:Debug>:KLIB_DEBUG>
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-compile-options
 )
@@ -36,6 +40,7 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/constants.hpp
   include/klib/enum_array.hpp
   include/klib/fixed_string.hpp
+  include/klib/polymorphic.hpp
   include/klib/str_buf.hpp
   include/klib/unit_test.hpp
   include/klib/version.hpp
