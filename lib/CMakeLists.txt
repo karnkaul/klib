@@ -34,6 +34,7 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/c_string.hpp
   include/klib/concepts.hpp
   include/klib/constants.hpp
+  include/klib/enum_array.hpp
   include/klib/fixed_string.hpp
   include/klib/str_buf.hpp
   include/klib/unit_test.hpp
