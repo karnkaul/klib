@@ -764,7 +764,7 @@ auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, cha
 namespace klib {
 namespace log {
 namespace {
-constexpr auto to_filename(std::string_view path) -> std::string_view {
+[[maybe_unused]] constexpr auto to_filename(std::string_view path) -> std::string_view {
 	auto const i = path.find_last_of("\\/");
 	if (i == std::string_view::npos) { return path; }
 	return path.substr(i + 1);
