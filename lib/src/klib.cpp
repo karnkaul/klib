@@ -826,18 +826,17 @@ struct FileSink::Impl {
 	void thunk(std::stop_token const& s) {
 		while (!s.stop_requested()) {
 			auto lock = std::unique_lock{m_mutex};
-			if (!m_cv.wait(lock, s, [this] { return !m_queue.empty(); })) { return; }
-			auto line = std::move(m_queue.front());
-			m_queue.pop_front();
+			m_cv.wait(lock, s, [this] { return !m_queue.empty(); });
+			auto queue = std::move(m_queue);
 			lock.unlock();
-			m_file << line;
+			for (auto const& line : queue) { m_file << line; }
 		}
 	}
 
 	std::mutex m_mutex{};
 	std::ofstream m_file{};
 	std::condition_variable_any m_cv{};
-	std::deque<std::string> m_queue{};
+	std::vector<std::string> m_queue{};
 	std::jthread m_thread{};
 };
 
