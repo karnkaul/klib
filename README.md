@@ -8,7 +8,10 @@
 
 - [x] [`args/*`](lib/include/klib/args/)
 - [x] [`byte_count.hpp`](lib/include/klib/byte_count.hpp)
+- [x] [`enum_array.hpp`](lib/include/klib/enum_array.hpp)
 - [x] [`fixed_string.hpp`](lib/include/klib/fixed_string.hpp)
+- [x] [`log.hpp`](lib/include/klib/log.hpp)
 - [x] [`task/*`](lib/include/klib/task/)
+- [x] [`unique.hpp`](lib/include/klib/unique.hpp)
 - [x] [`unit_test.hpp`](lib/include/klib/unit_test.hpp)
 - [x] [`version*.hpp`](lib/include/klib/version.hpp)
