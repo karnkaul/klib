@@ -11,10 +11,15 @@ namespace fs = std::filesystem;
 
 using namespace klib;
 
+constexpr auto trim(std::string_view line) {
+	while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) { line = line.substr(0, line.size() - 1); }
+	return line;
+}
+
 struct Sink : log::ISink {
 	void on_log(log::Input const& /*input*/, CString text) final {
 		auto lock = std::scoped_lock{m_mutex};
-		lines.emplace_back(text.as_view());
+		lines.emplace_back(trim(text.as_view()));
 	}
 
 	std::vector<std::string> lines{};
@@ -57,6 +62,8 @@ TEST(log_file) {
 	auto lines = std::span{sink->lines};
 	EXPECT(!lines.empty());
 
+	file_sink.reset();
+
 	auto file = std::ifstream{filename_v.c_str()};
 	EXPECT(file.is_open());
 	for (auto line = std::string{}; std::getline(file, line);) {
@@ -64,6 +71,7 @@ TEST(log_file) {
 		EXPECT(line == lines.front());
 		lines = lines.subspan(1);
 	}
+	file.close();
 
 	auto ec = std::error_code{};
 	EXPECT(fs::remove(filename_v.as_view(), ec));
