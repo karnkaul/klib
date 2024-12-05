@@ -815,6 +815,7 @@ struct FileSink::Impl {
 	}
 
 	void print(CString const line) {
+		if (!m_thread.joinable()) { return; }
 		auto lock = std::unique_lock{m_mutex};
 		m_queue.emplace_back(line.as_view());
 		lock.unlock();

@@ -15,21 +15,6 @@ enum class Level : std::int8_t { Error, Warn, Info, Debug, COUNT_ };
 inline constexpr auto level_to_char = EnumArray<Level, char>{'E', 'W', 'I', 'D'};
 inline constexpr auto debug_enabled_v = debug_v;
 
-enum struct ThreadId : std::int64_t { Main = 0 };
-
-struct Input {
-	Level level{};
-	std::string_view tag{};
-	std::string_view message{};
-	std::string_view file_name{};
-	std::uint64_t line_number{};
-};
-
-class ISink : public Polymorphic {
-  public:
-	virtual void on_log(Input const& input, CString text) = 0;
-};
-
 template <typename... Args>
 struct BasicFmt : std::basic_format_string<char, Args...> {
 	template <std::convertible_to<std::string_view> T>
@@ -41,16 +26,6 @@ struct BasicFmt : std::basic_format_string<char, Args...> {
 
 template <typename... Args>
 using Fmt = BasicFmt<std::type_identity_t<Args>...>;
-
-void set_max_level(Level level);
-[[nodiscard]] auto get_max_level() -> Level;
-
-[[nodiscard]] auto get_thread_id() -> ThreadId;
-
-void attach(std::weak_ptr<ISink> sink);
-
-[[nodiscard]] auto format(Input const& input) -> std::string;
-void print(Input const& input);
 
 template <typename... Args>
 void print(Level level, std::string_view tag, Fmt<Args...> const& fmt, Args&&... args);
@@ -75,6 +50,31 @@ void debug(std::string_view tag, Fmt<Args...> const& fmt, Args&&... args) {
 	if constexpr (!debug_enabled_v) { return; }
 	print(Level::Debug, tag, fmt, std::forward<Args>(args)...);
 }
+
+enum struct ThreadId : std::int64_t { Main = 0 };
+
+struct Input {
+	Level level{};
+	std::string_view tag{};
+	std::string_view message{};
+	std::string_view file_name{};
+	std::uint64_t line_number{};
+};
+
+class ISink : public Polymorphic {
+  public:
+	virtual void on_log(Input const& input, CString text) = 0;
+};
+
+void set_max_level(Level level);
+[[nodiscard]] auto get_max_level() -> Level;
+
+[[nodiscard]] auto get_thread_id() -> ThreadId;
+
+void attach(std::weak_ptr<ISink> sink);
+
+[[nodiscard]] auto format(Input const& input) -> std::string;
+void print(Input const& input);
 } // namespace klib::log
 
 namespace klib {
