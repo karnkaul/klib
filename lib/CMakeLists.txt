@@ -44,7 +44,9 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/klib/log.hpp
   include/klib/polymorphic.hpp
   include/klib/str_buf.hpp
+  include/klib/unique.hpp
   include/klib/unit_test.hpp
+  include/klib/scoped_defer.hpp
   include/klib/version.hpp
   include/klib/version_str.hpp
 )
