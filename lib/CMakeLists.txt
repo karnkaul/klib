@@ -10,6 +10,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-warnings
   ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
+  ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
