@@ -9,15 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_DEBUG_POSTFIX "-d")
 
-add_library(${PROJECT_NAME}-compile-options INTERFACE)
-add_library(${PROJECT_NAME}::${PROJECT_NAME}-compile-options ALIAS ${PROJECT_NAME}-compile-options)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL Clang OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-  target_compile_options(${PROJECT_NAME}-compile-options INTERFACE
-    -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type
-  )
-endif()
-
+include(cmake/interfaces.cmake)
 add_subdirectory(lib)
 
 if(KLIB_BUILD_TESTS)

@@ -8,7 +8,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  ${PROJECT_NAME}::${PROJECT_NAME}-compile-options
+  ${PROJECT_NAME}::${PROJECT_NAME}-warnings
+  ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -68,7 +69,8 @@ add_library(${PROJECT_NAME}-test-main)
 add_library(${PROJECT_NAME}::${PROJECT_NAME}-test-main ALIAS ${PROJECT_NAME}-test-main)
 
 target_link_libraries(${PROJECT_NAME}-test-main PRIVATE
-  ${PROJECT_NAME}::${PROJECT_NAME}-compile-options
+  ${PROJECT_NAME}::${PROJECT_NAME}-warnings
+  ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
 )
 
 target_link_libraries(${PROJECT_NAME}-test-main PUBLIC
