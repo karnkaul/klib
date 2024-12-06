@@ -43,7 +43,7 @@ class Parser {
 	ParseInfo const& m_info;
 	std::string_view m_exe_name;
 
-	ArgScanner m_scanner;
+	Scanner m_scanner;
 	std::span<Arg const> m_args{};
 	Cursor m_cursor{};
 	bool m_has_commands{};

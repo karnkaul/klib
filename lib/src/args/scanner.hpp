@@ -3,9 +3,9 @@
 #include <span>
 
 namespace klib::args {
-class ArgScanner {
+class Scanner {
   public:
-	explicit constexpr ArgScanner(std::span<char const* const> args) : m_args(args) {
+	explicit constexpr Scanner(std::span<char const* const> args) : m_args(args) {
 		if (!m_args.empty()) { m_next = to_token(m_args.front()); }
 	}
 

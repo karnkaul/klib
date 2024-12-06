@@ -39,7 +39,8 @@ struct ParamPositional {
 };
 
 struct ParamCommand {
-	std::span<Arg const> args;
+	Arg const* arg_ptr; // MSVC doesn't allow incomplete T in span<T>
+	std::size_t arg_count;
 	std::string_view name;
 	std::string_view help_text;
 };

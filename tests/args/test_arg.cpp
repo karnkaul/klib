@@ -106,6 +106,7 @@ TEST(arg_command) {
 	ASSERT(std::holds_alternative<ParamCommand>(param));
 	auto const& cmd = std::get<ParamCommand>(param);
 	EXPECT(cmd.name == "cmd");
-	for (auto const& [a, b] : std::ranges::zip_view(cmd.args, args)) { EXPECT(a.get_param().index() == b.get_param().index()); }
+	auto const cmd_args = std::span{cmd.arg_ptr, cmd.arg_count};
+	for (auto const& [a, b] : std::ranges::zip_view(cmd_args, args)) { EXPECT(a.get_param().index() == b.get_param().index()); }
 }
 } // namespace

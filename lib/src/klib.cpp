@@ -2,8 +2,10 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <fstream>
 #include <iomanip>
 #include <mutex>
 #include <print>
@@ -12,7 +14,18 @@
 #include <utility>
 #include <vector>
 
-// unit_test
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOCOMM
+#define NOMINMAX
+#define STRICT
+#define UNICODE
+#include <Windows.h>
+#endif
+
+namespace chr = std::chrono;
+
+// unit test
 
 #include <klib/unit_test.hpp>
 
@@ -314,7 +327,7 @@ void Queue::drop_enqueued() {
 auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::hardware_concurrency()); }
 } // namespace klib
 
-// arg*
+// args
 
 #include <args/parser.hpp>
 #include <klib/args/parse.hpp>
@@ -324,7 +337,8 @@ namespace args {
 Arg::Arg(bool& out, std::string_view const key, std::string_view const help_text)
 	: m_param(ParamOption{Binding::create<bool>(), &out, true, to_letter(key), to_word(key), help_text}) {}
 
-Arg::Arg(std::span<Arg const> args, std::string_view const name, std::string_view const help_text) : m_param(ParamCommand{args, name, help_text}) {}
+Arg::Arg(std::span<Arg const> args, std::string_view const name, std::string_view const help_text)
+	: m_param(ParamCommand{args.data(), args.size(), name, help_text}) {}
 
 namespace {
 constexpr auto get_exe_name(std::string_view const arg0) -> std::string_view {
@@ -577,7 +591,7 @@ auto Parser::select_command() -> ParseResult {
 	auto const* cmd = find_command(name);
 	if (cmd == nullptr) { return ErrorPrinter{m_exe_name}.unrecognized_command(name); }
 
-	m_args = cmd->args;
+	m_args = {cmd->arg_ptr, cmd->arg_count};
 	m_cursor = Cursor{.cmd = cmd};
 	return {};
 }
@@ -740,5 +754,146 @@ auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, cha
 	};
 	auto parser = Parser{info, exe_name, cli_args};
 	return parser.parse(args);
+}
+} // namespace klib
+
+// log
+
+#include <klib/log_file.hpp>
+
+namespace klib {
+namespace log {
+namespace {
+[[maybe_unused]] constexpr auto to_filename(std::string_view path) -> std::string_view {
+	auto const i = path.find_last_of("\\/");
+	if (i == std::string_view::npos) { return path; }
+	return path.substr(i + 1);
+}
+
+struct Storage {
+	using Lock = std::unique_lock<std::mutex>;
+
+	void attach(std::weak_ptr<ISink> sink) {
+		if (sink.expired()) { return; }
+		auto lock = std::scoped_lock{m_mutex};
+		std::erase_if(m_sinks, [](std::weak_ptr<ISink> const& p) { return p.expired(); });
+		m_sinks.push_back(std::move(sink));
+	}
+
+	[[nodiscard]] auto get_sinks() -> std::vector<std::shared_ptr<ISink>> {
+		auto ret = std::vector<std::shared_ptr<ISink>>{};
+		auto lock = std::scoped_lock{m_mutex};
+		if (m_sinks.empty()) { return {}; }
+		ret.reserve(m_sinks.size());
+		std::erase_if(m_sinks, [&ret](std::weak_ptr<ISink> const& p) {
+			if (auto sink = p.lock()) {
+				ret.push_back(std::move(sink));
+				return false;
+			}
+			return true;
+		});
+		return ret;
+	}
+
+	std::atomic<Level> max_level{Level::Debug};
+
+  private:
+	mutable std::mutex m_mutex{};
+	std::vector<std::weak_ptr<ISink>> m_sinks{};
+};
+
+auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+} // namespace
+
+struct FileSink::Impl {
+	explicit Impl(CString const path) : m_file(path.c_str()) {
+		if (!m_file.is_open()) {
+			error("FilePrinter", "Failed to open log file: '{}'", path.c_str());
+			return;
+		}
+
+		m_thread = std::jthread{[this](std::stop_token const& s) { thunk(s); }};
+	}
+
+	void print(CString const line) {
+		if (!m_thread.joinable()) { return; }
+		auto lock = std::unique_lock{m_mutex};
+		m_queue.emplace_back(line.as_view());
+		lock.unlock();
+		m_cv.notify_one();
+	}
+
+  private:
+	void thunk(std::stop_token const& s) {
+		while (!s.stop_requested()) {
+			auto lock = std::unique_lock{m_mutex};
+			m_cv.wait(lock, s, [this] { return !m_queue.empty(); });
+			auto queue = std::move(m_queue);
+			lock.unlock();
+			for (auto const& line : queue) { m_file << line; }
+		}
+	}
+
+	std::mutex m_mutex{};
+	std::ofstream m_file{};
+	std::condition_variable_any m_cv{};
+	std::vector<std::string> m_queue{};
+	std::jthread m_thread{};
+};
+
+void FileSink::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
+
+FileSink::FileSink(CString const path) : m_impl(new Impl(path)) {}
+
+void FileSink::on_log([[maybe_unused]] Input const& input, CString const text) {
+	if (!m_impl) { return; }
+	m_impl->print(text);
+}
+} // namespace log
+
+void log::set_max_level(Level level) { g_storage.max_level = level; }
+auto log::get_max_level() -> Level { return g_storage.max_level; }
+
+auto log::get_thread_id() -> ThreadId {
+	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
+	thread_local auto const ret = s_id++;
+	return ThreadId{ret};
+}
+
+void log::attach(std::weak_ptr<ISink> sink) { g_storage.attach(std::move(sink)); }
+
+auto log::format(Input const& input) -> std::string {
+	// [L] [tag/TT] message [timestamp] [source]
+
+	static constexpr std::size_t reserve_v = debug_v ? 128 : 64;
+	auto ret = std::string{};
+	ret.reserve(input.message.size() + reserve_v);
+
+	auto const level = level_to_char[input.level];
+	auto const tid = std::underlying_type_t<ThreadId>(get_thread_id());
+	auto const now = chr::time_point_cast<chr::seconds>(chr::system_clock::now());
+	auto const timestamp = chr::zoned_time{chr::current_zone(), now};
+
+	std::format_to(std::back_inserter(ret), "[{}] [{}/{:02}] {} [{:%T}]", level, input.tag, tid, input.message, timestamp);
+
+	if constexpr (debug_v) { std::format_to(std::back_inserter(ret), " [{}:{}]", to_filename(input.file_name), input.line_number); }
+
+	ret.append("\n");
+	return ret;
+}
+
+void log::print(Input const& input) {
+	if (input.level > g_storage.max_level) { return; }
+
+	auto const text = format(input);
+
+	auto* out = input.level == Level::Error ? stderr : stdout;
+	std::print(out, "{}", text);
+
+#if defined(_WIN32)
+	OutputDebugStringA(text.c_str());
+#endif
+
+	for (auto const& sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
 }
 } // namespace klib
