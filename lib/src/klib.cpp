@@ -25,6 +25,37 @@
 
 namespace chr = std::chrono;
 
+// common
+namespace {
+auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
+	auto file = std::ifstream{path};
+	if (!file.is_open()) { return {}; }
+
+	for (auto line = std::string{}; std::getline(file, line);) {
+		auto const i = line.find(substr);
+		if (i == std::string::npos) { continue; }
+		auto view = std::string_view{line}.substr(i + substr.size());
+		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view = view.substr(1); }
+		return std::string{view};
+	}
+
+	return {};
+}
+
+constexpr auto trim_to_first_digit(std::string_view text) -> std::string_view {
+	while (!text.empty() && std::isdigit(static_cast<unsigned char>(text.front())) == 0) { text = text.substr(1); }
+	return text;
+}
+
+template <std::integral T>
+auto to_int(std::string_view const text, T const fallback = {}) -> T {
+	auto ret = T{};
+	auto const [_, ec] = std::from_chars(text.data(), text.data() + text.size(), ret);
+	if (ec != std::errc{}) { return fallback; }
+	return ret;
+}
+} // namespace
+
 // unit test
 
 #include <klib/unit_test.hpp>
@@ -897,3 +928,22 @@ void log::print(Input const& input) {
 	for (auto const& sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
 }
 } // namespace klib
+
+// debug_trap
+
+#include <klib/debug_trap.hpp>
+
+#if __has_include(<csignal>)
+#include <csignal>
+#endif
+
+auto klib::is_debugger_attached() -> bool {
+#if defined(_WIN32)
+	return IsDebuggerPresent();
+#else
+	auto const tpid_line = get_line_containing("/proc/self/status", "TracerPid:");
+	auto const tpid_str = trim_to_first_digit(tpid_line);
+	auto const tracer_pid = to_int<std::int64_t>(tpid_str, -1);
+	return tracer_pid > 0;
+#endif
+}
