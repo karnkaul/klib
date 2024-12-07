@@ -26,7 +26,7 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp ALIAS ${PROJECT_NAME}-ms
 string(FIND "${CMAKE_GENERATOR}" "Visual Studio" gen_vs)
 
 if(NOT gen_vs EQUAL -1)
-  target_link_options(${PROJECT_NAME}-msbuild-mp INTERFACE
+  target_compile_options(${PROJECT_NAME}-msbuild-mp INTERFACE
     /MP
   )
 endif()
