@@ -11,6 +11,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-warnings
   ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
   ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
+  ${PROJECT_NAME}::${PROJECT_NAME}-libstdcxx-exp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

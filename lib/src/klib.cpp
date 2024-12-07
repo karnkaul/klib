@@ -947,3 +947,21 @@ auto klib::is_debugger_attached() -> bool {
 	return tracer_pid > 0;
 #endif
 }
+
+// assert
+
+#include <klib/assert.hpp>
+
+void klib::append_trace(std::string& out, std::stacktrace const& trace) {
+	for (auto const& entry : trace) {
+		auto const description = entry.description();
+		if (description.empty()) { return; }
+		std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
+	}
+}
+
+void klib::print_assertion_failure(std::string_view expr, std::stacktrace const& trace) noexcept(false) {
+	auto msg = std::format("assertion failed: '{}'\n", expr);
+	append_trace(msg, trace);
+	std::println(stderr, "{}", msg);
+}
