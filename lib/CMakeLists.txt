@@ -5,13 +5,24 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   $<$<CONFIG:Debug>:KLIB_DEBUG>
+  $<$<BOOL:${KLIB_USE_STACKTRACE}>:KLIB_USE_STACKTRACE>
 )
+
+set(stacktrace_lib "")
+
+if(CMAKE_HOST_UNIX)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
+    set(stacktrace_lib "stdc++exp")
+  else()
+    set(stacktrace_lib "stdc++_libbacktrace")
+  endif()
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-warnings
   ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
   ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
-  ${PROJECT_NAME}::${PROJECT_NAME}-libstdcxx-exp
+  $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

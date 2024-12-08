@@ -27,6 +27,8 @@ namespace chr = std::chrono;
 
 // common
 namespace {
+constexpr auto is_digit(char const c) { return c >= '0' && c <= '9'; };
+
 auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
 	auto file = std::ifstream{path};
 	if (!file.is_open()) { return {}; }
@@ -42,8 +44,9 @@ auto get_line_containing(char const* path, std::string_view const substr) -> std
 	return {};
 }
 
-constexpr auto trim_to_first_digit(std::string_view text) -> std::string_view {
-	while (!text.empty() && std::isdigit(static_cast<unsigned char>(text.front())) == 0) { text = text.substr(1); }
+template <typename Pred>
+constexpr auto trim_until(std::string_view text, Pred pred) -> std::string_view {
+	while (!text.empty() && !pred(text.front())) { text = text.substr(1); }
 	return text;
 }
 
@@ -942,9 +945,8 @@ auto klib::is_debugger_attached() -> bool {
 	return IsDebuggerPresent();
 #else
 	auto const tpid_line = get_line_containing("/proc/self/status", "TracerPid:");
-	auto const tpid_str = trim_to_first_digit(tpid_line);
-	auto const tracer_pid = to_int<std::int64_t>(tpid_str, -1);
-	return tracer_pid > 0;
+	auto const tracer_pid = trim_until(tpid_line, &is_digit);
+	return to_int<std::int64_t>(tracer_pid, -1) > 0;
 #endif
 }
 
@@ -952,16 +954,39 @@ auto klib::is_debugger_attached() -> bool {
 
 #include <klib/assert.hpp>
 
-void klib::append_trace(std::string& out, std::stacktrace const& trace) {
-	for (auto const& entry : trace) {
-		auto const description = entry.description();
-		if (description.empty()) { return; }
-		std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
+namespace klib {
+namespace assertion {
+namespace {
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+auto g_fail_action = std::atomic<assertion::FailAction>{assertion::FailAction::Throw};
+} // namespace
+} // namespace assertion
+
+auto assertion::get_fail_action() -> FailAction { return g_fail_action; }
+
+void assertion::set_fail_action(FailAction const value) { g_fail_action = value; }
+
+void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
+	if constexpr (use_stacktrace_v) {
+		for (auto const& entry : trace) {
+			auto const description = entry.description();
+			if (description.empty()) { return; }
+			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
+		}
 	}
 }
 
-void klib::print_assertion_failure(std::string_view expr, std::stacktrace const& trace) noexcept(false) {
+void assertion::print(std::string_view expr, std::stacktrace const& trace) noexcept(false) {
 	auto msg = std::format("assertion failed: '{}'\n", expr);
 	append_trace(msg, trace);
 	std::println(stderr, "{}", msg);
 }
+
+void assertion::trigger_failure() {
+	switch (g_fail_action) {
+	case FailAction::Throw: throw Failure{};
+	case FailAction::Terminate: std::terminate(); return;
+	default: return;
+	}
+}
+} // namespace klib

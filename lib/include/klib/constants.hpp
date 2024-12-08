@@ -18,4 +18,11 @@ constexpr auto debug_v =
 #else
 	false;
 #endif
+
+constexpr auto use_stacktrace_v =
+#if defined(KLIB_USE_STACKTRACE)
+	true;
+#else
+	false;
+#endif
 } // namespace klib
