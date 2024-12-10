@@ -793,8 +793,7 @@ auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, cha
 
 // log
 
-#include <klib/flex_array.hpp>
-#include <klib/log_file.hpp>
+#include <klib/log.hpp>
 
 namespace klib {
 namespace log {
@@ -805,58 +804,35 @@ namespace {
 	return path.substr(i + 1);
 }
 
-struct Storage {
-	using Lock = std::unique_lock<std::mutex>;
-
-	auto attach(Sink* sink) -> bool {
-		auto lock = std::scoped_lock{m_mutex};
-		return m_sinks.try_push_back(sink);
-	}
-
-	void detach(Sink const* sink) {
-		auto lock = std::scoped_lock{m_mutex};
-		m_sinks.erase_unordered_if([sink](Sink* s) { return sink == s; });
-	}
-
-	[[nodiscard]] auto get_sinks() -> FlexArray<Sink*, max_sinks_v> {
-		auto lock = std::scoped_lock{m_mutex};
-		return m_sinks;
-	}
-
-	std::atomic<Level> max_level{Level::Debug};
-
-  private:
-	mutable std::mutex m_mutex{};
-	FlexArray<Sink*, max_sinks_v> m_sinks{};
-};
-
-auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-} // namespace
-
-Sink::Sink() : m_attached(g_storage.attach(this)) {}
-
-Sink::~Sink() {
-	if (!m_attached) { return; }
-	g_storage.detach(this);
-}
-
-struct FileSink::Impl {
-	explicit Impl(CString const path) : m_file(path.c_str()) {
-		if (!m_file.is_open()) {
-			error("FilePrinter", "Failed to open log file: '{}'", path.c_str());
-			return;
-		}
-
+struct FileImpl {
+	auto start(std::string path_) -> bool {
+		stop();
+		auto file = std::ofstream{path_};
+		if (!file.is_open()) { return false; }
+		path = std::move(path_);
 		m_thread = std::jthread{[this](std::stop_token const& s) { thunk(s); }};
+		return true;
 	}
+
+	void stop() {
+		if (!is_running()) { return; }
+		m_thread.request_stop();
+		m_thread.join();
+		path.clear();
+		m_queue.clear();
+	}
+
+	[[nodiscard]] auto is_running() const -> bool { return m_thread.joinable(); }
 
 	void print(CString const line) {
-		if (!m_thread.joinable()) { return; }
+		if (!is_running()) { return; }
 		auto lock = std::unique_lock{m_mutex};
 		m_queue.emplace_back(line.as_view());
 		lock.unlock();
 		m_cv.notify_one();
 	}
+
+	std::string path{};
 
   private:
 	void thunk(std::stop_token const& s) {
@@ -865,25 +841,58 @@ struct FileSink::Impl {
 			m_cv.wait(lock, s, [this] { return !m_queue.empty(); });
 			auto queue = std::move(m_queue);
 			lock.unlock();
-			for (auto const& line : queue) { m_file << line; }
+			auto file = std::ofstream{path, std::ios::app};
+			for (auto const& line : queue) { file << line; }
 		}
 	}
 
 	std::mutex m_mutex{};
-	std::ofstream m_file{};
 	std::condition_variable_any m_cv{};
 	std::vector<std::string> m_queue{};
 	std::jthread m_thread{};
 };
 
-void FileSink::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
+struct Storage {
+	using Lock = std::unique_lock<std::mutex>;
 
-FileSink::FileSink(CString const path) : m_impl(new Impl(path)) {}
+	auto attach_file(std::string path) -> bool {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_file.start(std::move(path));
+	}
 
-void FileSink::on_log([[maybe_unused]] Input const& input, CString const text) {
-	if (!m_impl) { return; }
-	m_impl->print(text);
+	void detach_file() {
+		auto lock = std::scoped_lock{m_mutex};
+		m_file.stop();
+	}
+
+	[[nodiscard]] auto get_file_path() const -> std::string {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_file.path;
+	}
+
+	void print_to_file(CString const line) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_file.print(line);
+	}
+
+	std::atomic<Level> max_level{Level::Debug};
+
+  private:
+	mutable std::mutex m_mutex{};
+	FileImpl m_file{};
+};
+
+auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+} // namespace
+
+File::File(std::string path) : m_path(std::move(path)) {
+	if (m_path.empty()) { return; }
+	g_storage.attach_file(m_path);
 }
+
+File::~File() { g_storage.detach_file(); }
+
+auto File::is_attached() const -> bool { return m_path == g_storage.get_file_path(); }
 } // namespace log
 
 void log::set_max_level(Level level) { g_storage.max_level = level; }
@@ -927,7 +936,7 @@ void log::print(Input const& input) {
 	OutputDebugStringA(text.c_str());
 #endif
 
-	for (auto* sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
+	g_storage.print_to_file(text.c_str());
 }
 } // namespace klib
 

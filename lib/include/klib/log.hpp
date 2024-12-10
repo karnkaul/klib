@@ -6,7 +6,6 @@
 #include <klib/str_buf.hpp>
 #include <cstdint>
 #include <format>
-#include <memory>
 #include <source_location>
 #include <string>
 
@@ -61,30 +60,6 @@ struct Input {
 	std::uint64_t line_number{};
 };
 
-class ISink : public Polymorphic {
-  public:
-	virtual void on_log(Input const& input, CString text) = 0;
-};
-
-class Sink : public Polymorphic {
-  public:
-	Sink(Sink const&) = delete;
-	Sink(Sink&&) = delete;
-	auto operator=(Sink const&) = delete;
-	auto operator=(Sink&&) = delete;
-
-	Sink();
-	virtual ~Sink();
-
-	virtual void on_log(Input const& input, CString text) = 0;
-
-	[[nodiscard]] auto is_attached() const -> bool { return m_attached; }
-
-  private:
-	bool m_attached{};
-};
-inline constexpr std::size_t max_sinks_v{8};
-
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
@@ -92,6 +67,23 @@ void set_max_level(Level level);
 
 [[nodiscard]] auto format(Input const& input) -> std::string;
 void print(Input const& input);
+
+class File {
+  public:
+	File(File const&) = delete;
+	File(File&&) = delete;
+	auto operator=(File const&) = delete;
+	auto operator=(File&&) = delete;
+
+	explicit File(std::string path = "debug.log");
+	~File();
+
+	[[nodiscard]] auto is_attached() const -> bool;
+	[[nodiscard]] auto get_path() const -> std::string_view { return m_path; }
+
+  private:
+	std::string m_path;
+};
 } // namespace klib::log
 
 namespace klib {
