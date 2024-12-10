@@ -44,6 +44,20 @@ class FlexArray {
 		return true;
 	}
 
+	template <std::invocable<Type&> Pred>
+	constexpr void erase_unordered_if(Pred pred) {
+		for (auto& t : *this) {
+			if (pred(t)) {
+				if (m_size > 1) {
+					using std::swap;
+					swap(t, back());
+				}
+				pop_back();
+				return;
+			}
+		}
+	}
+
 	[[nodiscard]] constexpr auto size() const -> std::size_t { return m_size; }
 	[[nodiscard]] constexpr auto is_empty() const -> bool { return m_size == 0; }
 	[[nodiscard]] constexpr auto empty() const -> bool { return is_empty(); }

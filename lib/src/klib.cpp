@@ -793,6 +793,7 @@ auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, cha
 
 // log
 
+#include <klib/flex_array.hpp>
 #include <klib/log_file.hpp>
 
 namespace klib {
@@ -807,37 +808,37 @@ namespace {
 struct Storage {
 	using Lock = std::unique_lock<std::mutex>;
 
-	void attach(std::weak_ptr<ISink> sink) {
-		if (sink.expired()) { return; }
+	auto attach(Sink* sink) -> bool {
 		auto lock = std::scoped_lock{m_mutex};
-		std::erase_if(m_sinks, [](std::weak_ptr<ISink> const& p) { return p.expired(); });
-		m_sinks.push_back(std::move(sink));
+		return m_sinks.try_push_back(sink);
 	}
 
-	[[nodiscard]] auto get_sinks() -> std::vector<std::shared_ptr<ISink>> {
-		auto ret = std::vector<std::shared_ptr<ISink>>{};
+	void detach(Sink const* sink) {
 		auto lock = std::scoped_lock{m_mutex};
-		if (m_sinks.empty()) { return {}; }
-		ret.reserve(m_sinks.size());
-		std::erase_if(m_sinks, [&ret](std::weak_ptr<ISink> const& p) {
-			if (auto sink = p.lock()) {
-				ret.push_back(std::move(sink));
-				return false;
-			}
-			return true;
-		});
-		return ret;
+		m_sinks.erase_unordered_if([sink](Sink* s) { return sink == s; });
+	}
+
+	[[nodiscard]] auto get_sinks() -> FlexArray<Sink*, max_sinks_v> {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_sinks;
 	}
 
 	std::atomic<Level> max_level{Level::Debug};
 
   private:
 	mutable std::mutex m_mutex{};
-	std::vector<std::weak_ptr<ISink>> m_sinks{};
+	FlexArray<Sink*, max_sinks_v> m_sinks{};
 };
 
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace
+
+Sink::Sink() : m_attached(g_storage.attach(this)) {}
+
+Sink::~Sink() {
+	if (!m_attached) { return; }
+	g_storage.detach(this);
+}
 
 struct FileSink::Impl {
 	explicit Impl(CString const path) : m_file(path.c_str()) {
@@ -894,8 +895,6 @@ auto log::get_thread_id() -> ThreadId {
 	return ThreadId{ret};
 }
 
-void log::attach(std::weak_ptr<ISink> sink) { g_storage.attach(std::move(sink)); }
-
 auto log::format(Input const& input) -> std::string {
 	// [L] [tag/TT] message [timestamp] [source]
 
@@ -928,7 +927,7 @@ void log::print(Input const& input) {
 	OutputDebugStringA(text.c_str());
 #endif
 
-	for (auto const& sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
+	for (auto* sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
 }
 } // namespace klib
 

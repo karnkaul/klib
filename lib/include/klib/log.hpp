@@ -66,12 +66,29 @@ class ISink : public Polymorphic {
 	virtual void on_log(Input const& input, CString text) = 0;
 };
 
+class Sink : public Polymorphic {
+  public:
+	Sink(Sink const&) = delete;
+	Sink(Sink&&) = delete;
+	auto operator=(Sink const&) = delete;
+	auto operator=(Sink&&) = delete;
+
+	Sink();
+	virtual ~Sink();
+
+	virtual void on_log(Input const& input, CString text) = 0;
+
+	[[nodiscard]] auto is_attached() const -> bool { return m_attached; }
+
+  private:
+	bool m_attached{};
+};
+inline constexpr std::size_t max_sinks_v{8};
+
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
-
-void attach(std::weak_ptr<ISink> sink);
 
 [[nodiscard]] auto format(Input const& input) -> std::string;
 void print(Input const& input);

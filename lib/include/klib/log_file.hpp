@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace klib::log {
-class FileSink : public ISink {
+class FileSink : public Sink {
   public:
 	explicit FileSink(CString path = "debug.log");
 

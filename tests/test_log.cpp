@@ -16,7 +16,7 @@ constexpr auto trim(std::string_view line) {
 	return line;
 }
 
-struct Sink : log::ISink {
+struct Sink : log::Sink {
 	void on_log(log::Input const& /*input*/, CString text) final {
 		auto lock = std::scoped_lock{m_mutex};
 		lines.emplace_back(trim(text.as_view()));
@@ -31,11 +31,11 @@ struct Sink : log::ISink {
 TEST(log_file) {
 	static constexpr CString filename_v{"klib_test.log"};
 	static constexpr std::string_view tag_v{"test"};
-	auto sink = std::make_shared<Sink>();
-	auto file_sink = std::make_shared<log::FileSink>(filename_v);
+	auto sink = Sink{};
+	auto file_sink = std::optional<log::FileSink>{filename_v};
 
-	log::attach(sink);
-	log::attach(file_sink);
+	EXPECT(sink.is_attached());
+	EXPECT(file_sink->is_attached());
 
 	static auto const log_line = [](log::Level const level) {
 		switch (level) {
@@ -59,7 +59,7 @@ TEST(log_file) {
 	}
 
 	futures.clear();
-	auto lines = std::span{sink->lines};
+	auto lines = std::span{sink.lines};
 	EXPECT(!lines.empty());
 
 	file_sink.reset();
