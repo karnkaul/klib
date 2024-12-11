@@ -42,13 +42,25 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: configure
+      - name: init
+        run: choco install ninja
+      - name: configure vs22
         run: cmake -S . --preset=vs22 -B build
-      - name: build debug
+      - name: configure clang
+        run: cmake -S . --preset=ninja-clang -B clang
+      - name: build vs22 debug
         run: cmake --build build --config=Debug
-      - name: build release
+      - name: build vs22 release
         run: cmake --build build --config=Release
-      - name: test debug
+      - name: build clang debug
+        run: cmake --build clang --config=Debug
+      - name: build clang release
+        run: cmake --build clang --config=Release
+      - name: test vs22 debug
         run: cd build && ctest -C Debug
-      - name: test release
+      - name: test vs22 release
         run: cd build && ctest -C Release
+      - name: test clang debug
+        run: cd clang && ctest -C Debug
+      - name: test clang release
+        run: cd clang && ctest -C Release
