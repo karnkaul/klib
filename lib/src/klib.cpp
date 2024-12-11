@@ -27,9 +27,9 @@ namespace chr = std::chrono;
 
 // common
 namespace {
-constexpr auto is_digit(char const c) { return c >= '0' && c <= '9'; };
+[[maybe_unused]] constexpr auto is_digit(char const c) { return c >= '0' && c <= '9'; };
 
-auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
+[[maybe_unused]] auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
 	auto file = std::ifstream{path};
 	if (!file.is_open()) { return {}; }
 
@@ -137,7 +137,7 @@ auto klib::to_version(CString text) -> Version {
 	if (text.as_view().empty()) { return {}; }
 
 	auto ret = Version{};
-	auto discard = char{'.'};
+	auto discard = char{};
 	auto str = std::istringstream{text.c_str()};
 	str >> ret.major >> discard >> ret.minor >> discard >> ret.patch;
 	return ret;
@@ -944,13 +944,9 @@ void log::print(Input const& input) {
 
 #include <klib/debug_trap.hpp>
 
-#if __has_include(<csignal>)
-#include <csignal>
-#endif
-
 auto klib::is_debugger_attached() -> bool {
 #if defined(_WIN32)
-	return IsDebuggerPresent();
+	return IsDebuggerPresent() != 0;
 #else
 	auto const tpid_line = get_line_containing("/proc/self/status", "TracerPid:");
 	auto const tracer_pid = trim_until(tpid_line, &is_digit);

@@ -1,6 +1,6 @@
 #pragma once
 
-#if __has_include(<csignal>)
+#if not defined(_MSC_VER) and __has_include(<csignal>)
 #include <csignal>
 #endif
 
