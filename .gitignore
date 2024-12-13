@@ -5,6 +5,7 @@ out/*
 .cache
 .DS_Store
 
+tests/tmp.cpp
 **/test_src
 
 CMakeSettings.json

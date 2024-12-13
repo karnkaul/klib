@@ -1,4 +1,5 @@
 #pragma once
+#include <klib/macros.hpp>
 #include <utility>
 
 namespace klib {
@@ -25,6 +26,6 @@ class Unique {
 
   private:
 	Type m_t;
-	[[no_unique_address]] Deleter m_deleter;
+	KLIB_NO_UNIQUE_ADDRESS Deleter m_deleter;
 };
 } // namespace klib

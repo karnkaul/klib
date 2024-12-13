@@ -5,11 +5,24 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   $<$<CONFIG:Debug>:KLIB_DEBUG>
+  $<$<BOOL:${KLIB_USE_STACKTRACE}>:KLIB_USE_STACKTRACE>
 )
+
+set(stacktrace_lib "")
+
+if(CMAKE_HOST_UNIX)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
+    set(stacktrace_lib "stdc++exp")
+  else()
+    set(stacktrace_lib "stdc++_libbacktrace")
+  endif()
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-warnings
   ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
+  ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
+  $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -20,49 +33,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   src
 )
 
+file(GLOB_RECURSE headers LIST_DIRECTORIES false "include/*.hpp")
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
-  include/klib/args/arg.hpp
-  include/klib/args/binding.hpp
-  include/klib/args/parse_info.hpp
-  include/klib/args/parse_result.hpp
-  include/klib/args/parse.hpp
+  ${headers}
+)
 
-  include/klib/task/id.hpp
-  include/klib/task/queue_create_info.hpp
-  include/klib/task/queue_fwd.hpp
-  include/klib/task/queue.hpp
-  include/klib/task/status.hpp
-  include/klib/task/task_fwd.hpp
-  include/klib/task/task.hpp
-
-  include/klib/byte_count.hpp
-  include/klib/c_string.hpp
-  include/klib/concepts.hpp
-  include/klib/constants.hpp
-  include/klib/enum_array.hpp
-  include/klib/fixed_string.hpp
-  include/klib/log_file.hpp
-  include/klib/log.hpp
-  include/klib/polymorphic.hpp
-  include/klib/str_buf.hpp
-  include/klib/unique.hpp
-  include/klib/unit_test.hpp
-  include/klib/scoped_defer.hpp
-  include/klib/version.hpp
-  include/klib/version_str.hpp
+configure_file(cmake_src/build_version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
+target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include" FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp"
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
   src/klib.cpp
-)
-
-get_target_property(sources ${PROJECT_NAME} SOURCES)
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
-configure_file(cmake_src/build_version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
-source_group("include/${PROJECT_NAME}" FILES "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
-
-target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include" FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp"
 )
 
 add_library(${PROJECT_NAME}-test-main)

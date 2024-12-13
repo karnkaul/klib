@@ -6,7 +6,6 @@
 #include <klib/str_buf.hpp>
 #include <cstdint>
 #include <format>
-#include <memory>
 #include <source_location>
 #include <string>
 
@@ -61,20 +60,30 @@ struct Input {
 	std::uint64_t line_number{};
 };
 
-class ISink : public Polymorphic {
-  public:
-	virtual void on_log(Input const& input, CString text) = 0;
-};
-
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 
-void attach(std::weak_ptr<ISink> sink);
-
 [[nodiscard]] auto format(Input const& input) -> std::string;
 void print(Input const& input);
+
+class File {
+  public:
+	File(File const&) = delete;
+	File(File&&) = delete;
+	auto operator=(File const&) = delete;
+	auto operator=(File&&) = delete;
+
+	explicit File(std::string path = "debug.log");
+	~File();
+
+	[[nodiscard]] auto is_attached() const -> bool;
+	[[nodiscard]] auto get_path() const -> std::string_view { return m_path; }
+
+  private:
+	std::string m_path;
+};
 } // namespace klib::log
 
 namespace klib {

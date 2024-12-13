@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(klib VERSION "0.2.0")
+project(klib VERSION "0.3.0")
+
+option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
 
 option(KLIB_BUILD_TESTS "Build klib tests" ${PROJECT_IS_TOP_LEVEL})
 

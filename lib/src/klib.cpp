@@ -8,7 +8,9 @@
 #include <fstream>
 #include <iomanip>
 #include <mutex>
+#include <numeric>
 #include <print>
+#include <ranges>
 #include <sstream>
 #include <thread>
 #include <utility>
@@ -24,6 +26,40 @@
 #endif
 
 namespace chr = std::chrono;
+
+// common
+namespace {
+[[maybe_unused]] constexpr auto is_digit(char const c) { return c >= '0' && c <= '9'; };
+
+[[maybe_unused]] auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
+	auto file = std::ifstream{path};
+	if (!file.is_open()) { return {}; }
+
+	for (auto line = std::string{}; std::getline(file, line);) {
+		auto const i = line.find(substr);
+		if (i == std::string::npos) { continue; }
+		auto view = std::string_view{line}.substr(i + substr.size());
+		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view = view.substr(1); }
+		return std::string{view};
+	}
+
+	return {};
+}
+
+template <typename Pred>
+constexpr auto trim_until(std::string_view text, Pred pred) -> std::string_view {
+	while (!text.empty() && !pred(text.front())) { text = text.substr(1); }
+	return text;
+}
+
+template <std::integral T>
+auto to_int(std::string_view const text, T const fallback = {}) -> T {
+	auto ret = T{};
+	auto const [_, ec] = std::from_chars(text.data(), text.data() + text.size(), ret);
+	if (ec != std::errc{}) { return fallback; }
+	return ret;
+}
+} // namespace
 
 // unit test
 
@@ -103,7 +139,7 @@ auto klib::to_version(CString text) -> Version {
 	if (text.as_view().empty()) { return {}; }
 
 	auto ret = Version{};
-	auto discard = char{'.'};
+	auto discard = char{};
 	auto str = std::istringstream{text.c_str()};
 	str >> ret.major >> discard >> ret.minor >> discard >> ret.patch;
 	return ret;
@@ -759,7 +795,7 @@ auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, cha
 
 // log
 
-#include <klib/log_file.hpp>
+#include <klib/log.hpp>
 
 namespace klib {
 namespace log {
@@ -770,58 +806,35 @@ namespace {
 	return path.substr(i + 1);
 }
 
-struct Storage {
-	using Lock = std::unique_lock<std::mutex>;
-
-	void attach(std::weak_ptr<ISink> sink) {
-		if (sink.expired()) { return; }
-		auto lock = std::scoped_lock{m_mutex};
-		std::erase_if(m_sinks, [](std::weak_ptr<ISink> const& p) { return p.expired(); });
-		m_sinks.push_back(std::move(sink));
-	}
-
-	[[nodiscard]] auto get_sinks() -> std::vector<std::shared_ptr<ISink>> {
-		auto ret = std::vector<std::shared_ptr<ISink>>{};
-		auto lock = std::scoped_lock{m_mutex};
-		if (m_sinks.empty()) { return {}; }
-		ret.reserve(m_sinks.size());
-		std::erase_if(m_sinks, [&ret](std::weak_ptr<ISink> const& p) {
-			if (auto sink = p.lock()) {
-				ret.push_back(std::move(sink));
-				return false;
-			}
-			return true;
-		});
-		return ret;
-	}
-
-	std::atomic<Level> max_level{Level::Debug};
-
-  private:
-	mutable std::mutex m_mutex{};
-	std::vector<std::weak_ptr<ISink>> m_sinks{};
-};
-
-auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-} // namespace
-
-struct FileSink::Impl {
-	explicit Impl(CString const path) : m_file(path.c_str()) {
-		if (!m_file.is_open()) {
-			error("FilePrinter", "Failed to open log file: '{}'", path.c_str());
-			return;
-		}
-
+struct FileImpl {
+	auto start(std::string path_) -> bool {
+		stop();
+		auto file = std::ofstream{path_};
+		if (!file.is_open()) { return false; }
+		path = std::move(path_);
 		m_thread = std::jthread{[this](std::stop_token const& s) { thunk(s); }};
+		return true;
 	}
+
+	void stop() {
+		if (!is_running()) { return; }
+		m_thread.request_stop();
+		m_thread.join();
+		path.clear();
+		m_queue.clear();
+	}
+
+	[[nodiscard]] auto is_running() const -> bool { return m_thread.joinable(); }
 
 	void print(CString const line) {
-		if (!m_thread.joinable()) { return; }
+		if (!is_running()) { return; }
 		auto lock = std::unique_lock{m_mutex};
 		m_queue.emplace_back(line.as_view());
 		lock.unlock();
 		m_cv.notify_one();
 	}
+
+	std::string path{};
 
   private:
 	void thunk(std::stop_token const& s) {
@@ -830,25 +843,58 @@ struct FileSink::Impl {
 			m_cv.wait(lock, s, [this] { return !m_queue.empty(); });
 			auto queue = std::move(m_queue);
 			lock.unlock();
-			for (auto const& line : queue) { m_file << line; }
+			auto file = std::ofstream{path, std::ios::app};
+			for (auto const& line : queue) { file << line; }
 		}
 	}
 
 	std::mutex m_mutex{};
-	std::ofstream m_file{};
 	std::condition_variable_any m_cv{};
 	std::vector<std::string> m_queue{};
 	std::jthread m_thread{};
 };
 
-void FileSink::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
+struct Storage {
+	using Lock = std::unique_lock<std::mutex>;
 
-FileSink::FileSink(CString const path) : m_impl(new Impl(path)) {}
+	auto attach_file(std::string path) -> bool {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_file.start(std::move(path));
+	}
 
-void FileSink::on_log([[maybe_unused]] Input const& input, CString const text) {
-	if (!m_impl) { return; }
-	m_impl->print(text);
+	void detach_file() {
+		auto lock = std::scoped_lock{m_mutex};
+		m_file.stop();
+	}
+
+	[[nodiscard]] auto get_file_path() const -> std::string {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_file.path;
+	}
+
+	void print_to_file(CString const line) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_file.print(line);
+	}
+
+	std::atomic<Level> max_level{Level::Debug};
+
+  private:
+	mutable std::mutex m_mutex{};
+	FileImpl m_file{};
+};
+
+auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+} // namespace
+
+File::File(std::string path) : m_path(std::move(path)) {
+	if (m_path.empty()) { return; }
+	g_storage.attach_file(m_path);
 }
+
+File::~File() { g_storage.detach_file(); }
+
+auto File::is_attached() const -> bool { return m_path == g_storage.get_file_path(); }
 } // namespace log
 
 void log::set_max_level(Level level) { g_storage.max_level = level; }
@@ -859,8 +905,6 @@ auto log::get_thread_id() -> ThreadId {
 	thread_local auto const ret = s_id++;
 	return ThreadId{ret};
 }
-
-void log::attach(std::weak_ptr<ISink> sink) { g_storage.attach(std::move(sink)); }
 
 auto log::format(Input const& input) -> std::string {
 	// [L] [tag/TT] message [timestamp] [source]
@@ -894,6 +938,153 @@ void log::print(Input const& input) {
 	OutputDebugStringA(text.c_str());
 #endif
 
-	for (auto const& sink : g_storage.get_sinks()) { sink->on_log(input, text.c_str()); }
+	g_storage.print_to_file(text.c_str());
+}
+} // namespace klib
+
+// debug_trap
+
+#include <klib/debug_trap.hpp>
+
+auto klib::is_debugger_attached() -> bool {
+#if defined(_WIN32)
+	return IsDebuggerPresent() != 0;
+#else
+	auto const tpid_line = get_line_containing("/proc/self/status", "TracerPid:");
+	auto const tracer_pid = trim_until(tpid_line, &is_digit);
+	return to_int<std::int64_t>(tracer_pid, -1) > 0;
+#endif
+}
+
+// assert
+
+#include <klib/assert.hpp>
+
+namespace klib {
+namespace assertion {
+namespace {
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+auto g_fail_action = std::atomic<assertion::FailAction>{assertion::FailAction::Throw};
+} // namespace
+} // namespace assertion
+
+auto assertion::get_fail_action() -> FailAction { return g_fail_action; }
+
+void assertion::set_fail_action(FailAction const value) { g_fail_action = value; }
+
+void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
+	if constexpr (use_stacktrace_v) {
+		for (auto const& entry : trace) {
+			auto const description = entry.description();
+			if (description.empty() || description.contains("!invoke_main+")) { return; }
+			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
+		}
+	}
+}
+
+void assertion::print(std::string_view expr, std::stacktrace const& trace) noexcept(false) {
+	auto msg = std::format("assertion failed: '{}'\n", expr);
+	append_trace(msg, trace);
+	std::println(stderr, "{}", msg);
+}
+
+void assertion::trigger_failure() {
+	switch (g_fail_action) {
+	case FailAction::Throw: throw Failure{};
+	case FailAction::Terminate: std::terminate(); return;
+	default: return;
+	}
+}
+} // namespace klib
+
+// text_table
+
+#include <klib/text_table.hpp>
+
+namespace klib {
+void TextTable::push_row(std::vector<std::string> row) {
+	m_rows.push_back(std::move(row));
+	update_column_widths();
+}
+
+void TextTable::append_to(std::string& out) const {
+	for (auto const& column : m_columns) { column.fmt = make_column_fmt(column); }
+
+	static constexpr std::string_view per_column_spacing_v{"|  "};
+	static constexpr std::string_view end_spacing_v{"|"};
+	auto const spacing = m_columns.size() * per_column_spacing_v.size() + end_spacing_v.size();
+	auto const total_width = std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) { return s + c.max_width; });
+	append_border(out, total_width);
+	append_titles(out);
+	append_separator(out, total_width);
+	for (auto const& row : m_rows) {
+		if (row.empty()) {
+			append_separator(out, total_width);
+			continue;
+		}
+
+		for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { append_cell(out, column.fmt, cell); }
+		if (!no_border) { out += '|'; }
+		out += '\n';
+	}
+	append_border(out, total_width);
+}
+
+auto TextTable::make_column_fmt(Column const& column) const -> std::string {
+	auto ret = std::string{};
+	auto const align_char = [align = column.align] {
+		switch (align) {
+		default:
+		case TextTable::Align::Left: return '<';
+		case TextTable::Align::Right: return '>';
+		case TextTable::Align::Center: return '^';
+		}
+	}();
+	std::string_view const prefix = no_border ? "" : "| ";
+	std::format_to(std::back_inserter(ret), "{}{{:{}{}}} ", prefix, align_char, column.max_width);
+	return ret;
+}
+
+void TextTable::update_column_widths() {
+	KLIB_ASSERT(!m_rows.empty());
+	auto const& row = m_rows.back();
+	if (row.empty()) { return; }
+	for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { column.max_width = std::max(column.max_width, cell.size()); }
+}
+
+void TextTable::append_border(std::string& out, std::size_t const width) const {
+	if (no_border || width < 2) { return; }
+	out += '+';
+	for (std::size_t i = 0; i < width - 2; ++i) { out += '-'; }
+	out += "+\n";
+}
+
+void TextTable::append_separator(std::string& out, std::size_t const width) const {
+	if (no_border) { return; }
+	for (std::size_t i = 0; i < width; ++i) { out += '-'; }
+	out += '\n';
+}
+
+void TextTable::append_cell(std::string& out, std::string_view const fmt, std::string_view const cell) {
+	std::vformat_to(std::back_inserter(out), fmt, std::make_format_args(cell));
+}
+
+void TextTable::append_titles(std::string& out) const {
+	for (auto const& column : m_columns) { append_cell(out, column.fmt, column.title); }
+	if (!no_border) { out += '|'; }
+	out += '\n';
+}
+
+auto TextTable::Builder::add_column(std::string title, Align const align) -> Builder& {
+	auto column = Column{.title = std::move(title), .align = align};
+	column.max_width = column.title.size();
+	m_columns.push_back(std::move(column));
+	return *this;
+}
+
+auto TextTable::Builder::build() const -> TextTable {
+	auto ret = TextTable{};
+	ret.m_columns = m_columns;
+	return ret;
 }
 } // namespace klib

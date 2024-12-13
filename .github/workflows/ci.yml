@@ -2,43 +2,46 @@ name: ci-push
 on: [push]
 jobs:
   format-check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: format code
         run: scripts/format_code.sh
       - name: check diff
         run: .github/format_check_diff.sh
-  build-linux:
-    runs-on: ubuntu-24.04
+  linux-gcc:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: |
-          sudo apt update -yqq && sudo apt install -yqq ninja-build gcc-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
-      - name: configure gcc
-        run: cmake -S . --preset=default -B build
-      - name: configure clang
-        run: cmake -S . --preset=ninja-clang -B clang
-      - name: build gcc debug
+        run: sudo apt install -yqq ninja-build
+      - name: configure
+        run: export CXX=g++-14; cmake -S . --preset=default -B build
+      - name: build debug
         run: cmake --build build --config=Debug
-      - name: build gcc release
+      - name: build release
         run: cmake --build build --config=Release
-      - name: build clang debug
-        run: cmake --build clang --config=Debug
-      - name: build clang release
-        run: cmake --build clang --config=Release
-      - name: test gcc debug
-        run: cd build && ctest -C Debug
-      - name: test gcc release
-        run: cd build && ctest -C Release
-      - name: test clang debug
-        run: cd clang && ctest -C Debug
-      - name: test clang release
-        run: cd clang && ctest -C Release
-  build-windows:
+      - name: test debug
+        run: cd build && ctest -V -C Debug
+      - name: test release
+        run: cd build && ctest -V -C Release
+  linux-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: init
+        run: sudo apt install -yqq ninja-build
+      - name: configure
+        run: cmake -S . --preset=ninja-clang -B build
+      - name: build debug
+        run: cmake --build build --config=Debug
+      - name: build release
+        run: cmake --build build --config=Release
+      - name: test debug
+        run: cd build && ctest -V -C Debug
+      - name: test release
+        run: cd build && ctest -V -C Release
+  windows-vs22:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +52,22 @@ jobs:
       - name: build release
         run: cmake --build build --config=Release
       - name: test debug
-        run: cd build && ctest -C Debug
+        run: cd build && ctest -V -C Debug
       - name: test release
-        run: cd build && ctest -C Release
+        run: cd build && ctest -V -C Release
+  windows-clang:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: init
+        run: choco install ninja
+      - name: configure
+        run: cmake -S . --preset=ninja-clang -B clang
+      - name: build debug
+        run: cmake --build clang --config=Debug
+      - name: build release
+        run: cmake --build clang --config=Release
+      - name: test debug
+        run: cd clang && ctest -V -C Debug
+      - name: test release
+        run: cd clang && ctest -V -C Release
