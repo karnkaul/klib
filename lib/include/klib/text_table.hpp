@@ -13,6 +13,7 @@ class TextTable {
 	void push_separator() { push_row(separator()); }
 
 	void append_to(std::string& out) const;
+	[[nodiscard]] auto serialize() const -> std::string;
 
 	bool no_border{};
 

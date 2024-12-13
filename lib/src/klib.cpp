@@ -1023,11 +1023,22 @@ void TextTable::append_to(std::string& out) const {
 			continue;
 		}
 
-		for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { append_cell(out, column.fmt, cell); }
+		for (std::size_t i = 0; i < m_columns.size(); ++i) {
+			auto const& column = m_columns.at(i);
+			auto const cell = i < row.size() ? row.at(i) : std::string_view{};
+			append_cell(out, column.fmt, cell);
+		}
+
 		if (!no_border) { out += '|'; }
 		out += '\n';
 	}
 	append_border(out, total_width);
+}
+
+auto TextTable::serialize() const -> std::string {
+	auto ret = std::string{};
+	append_to(ret);
+	return ret;
 }
 
 auto TextTable::make_column_fmt(Column const& column) const -> std::string {
