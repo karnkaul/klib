@@ -976,7 +976,7 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 	if constexpr (use_stacktrace_v) {
 		for (auto const& entry : trace) {
 			auto const description = entry.description();
-			if (description.empty()) { return; }
+			if (description.empty() || description.contains("!invoke_main+")) { return; }
 			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
 		}
 	}
