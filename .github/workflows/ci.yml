@@ -14,12 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: |
-          sudo apt update -yqq && sudo apt install -yqq ninja-build gcc-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+        run: sudo apt install -yqq ninja-build
       - name: configure
-        run: cmake -S . --preset=default -B build
+        run: export CXX=g++-14; cmake -S . --preset=default -B build
       - name: build debug
         run: cmake --build build --config=Debug
       - name: build release
@@ -33,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: sudo apt update -yqq && sudo apt install -yqq ninja-build clang-18
+        run: sudo apt install -yqq ninja-build
       - name: configure
         run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
