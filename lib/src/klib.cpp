@@ -8,7 +8,9 @@
 #include <fstream>
 #include <iomanip>
 #include <mutex>
+#include <numeric>
 #include <print>
+#include <ranges>
 #include <sstream>
 #include <thread>
 #include <utility>
@@ -992,5 +994,97 @@ void assertion::trigger_failure() {
 	case FailAction::Terminate: std::terminate(); return;
 	default: return;
 	}
+}
+} // namespace klib
+
+// text_table
+
+#include <klib/text_table.hpp>
+
+namespace klib {
+void TextTable::push_row(std::vector<std::string> row) {
+	m_rows.push_back(std::move(row));
+	update_column_widths();
+}
+
+void TextTable::append_to(std::string& out) const {
+	for (auto const& column : m_columns) { column.fmt = make_column_fmt(column); }
+
+	static constexpr std::string_view per_column_spacing_v{"|  "};
+	static constexpr std::string_view end_spacing_v{"|"};
+	auto const spacing = m_columns.size() * per_column_spacing_v.size() + end_spacing_v.size();
+	auto const total_width = std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) { return s + c.max_width; });
+	append_border(out, total_width);
+	append_titles(out);
+	append_separator(out, total_width);
+	for (auto const& row : m_rows) {
+		if (row.empty()) {
+			append_separator(out, total_width);
+			continue;
+		}
+
+		for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { append_cell(out, column.fmt, cell); }
+		if (!no_border) { out += '|'; }
+		out += '\n';
+	}
+	append_border(out, total_width);
+}
+
+auto TextTable::make_column_fmt(Column const& column) const -> std::string {
+	auto ret = std::string{};
+	auto const align_char = [align = column.align] {
+		switch (align) {
+		default:
+		case TextTable::Align::Left: return '<';
+		case TextTable::Align::Right: return '>';
+		case TextTable::Align::Center: return '^';
+		}
+	}();
+	std::string_view const prefix = no_border ? "" : "| ";
+	std::format_to(std::back_inserter(ret), "{}{{:{}{}}} ", prefix, align_char, column.max_width);
+	return ret;
+}
+
+void TextTable::update_column_widths() {
+	KLIB_ASSERT(!m_rows.empty());
+	auto const& row = m_rows.back();
+	if (row.empty()) { return; }
+	for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { column.max_width = std::max(column.max_width, cell.size()); }
+}
+
+void TextTable::append_border(std::string& out, std::size_t const width) const {
+	if (no_border || width < 2) { return; }
+	out += '+';
+	for (std::size_t i = 0; i < width - 2; ++i) { out += '-'; }
+	out += "+\n";
+}
+
+void TextTable::append_separator(std::string& out, std::size_t const width) const {
+	if (no_border) { return; }
+	for (std::size_t i = 0; i < width; ++i) { out += '-'; }
+	out += '\n';
+}
+
+void TextTable::append_cell(std::string& out, std::string_view const fmt, std::string_view const cell) {
+	std::vformat_to(std::back_inserter(out), fmt, std::make_format_args(cell));
+}
+
+void TextTable::append_titles(std::string& out) const {
+	for (auto const& column : m_columns) { append_cell(out, column.fmt, column.title); }
+	if (!no_border) { out += '|'; }
+	out += '\n';
+}
+
+auto TextTable::Builder::add_column(std::string title, Align const align) -> Builder& {
+	auto column = Column{.title = std::move(title), .align = align};
+	column.max_width = column.title.size();
+	m_columns.push_back(std::move(column));
+	return *this;
+}
+
+auto TextTable::Builder::build() const -> TextTable {
+	auto ret = TextTable{};
+	ret.m_columns = m_columns;
+	return ret;
 }
 } // namespace klib
