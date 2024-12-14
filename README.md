@@ -12,6 +12,7 @@
 - [x] [`fixed_string.hpp`](lib/include/klib/fixed_string.hpp)
 - [x] [`log.hpp`](lib/include/klib/log.hpp)
 - [x] [`task/*`](lib/include/klib/task/)
+- [x] [`text_table.hpp`](lib/include/klib/text_table.hpp)
 - [x] [`unique.hpp`](lib/include/klib/unique.hpp)
 - [x] [`unit_test.hpp`](lib/include/klib/unit_test.hpp)
 - [x] [`version*.hpp`](lib/include/klib/version.hpp)
