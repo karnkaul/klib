@@ -965,6 +965,15 @@ namespace assertion {
 namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto g_fail_action = std::atomic<assertion::FailAction>{assertion::FailAction::Throw};
+
+auto is_internal(std::string_view const trace_description) -> bool {
+	static constexpr auto phrases_v = std::array{
+		"!invoke_main+",
+		"start_call_main",
+	};
+	if (trace_description.empty()) { return true; }
+	return std::ranges::any_of(phrases_v, [trace_description](std::string_view const phrase) { return trace_description.contains(phrase); });
+}
 } // namespace
 } // namespace assertion
 
@@ -976,7 +985,7 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 	if constexpr (use_stacktrace_v) {
 		for (auto const& entry : trace) {
 			auto const description = entry.description();
-			if (description.empty() || description.contains("!invoke_main+")) { return; }
+			if (is_internal(description)) { return; }
 			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
 		}
 	}
