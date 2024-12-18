@@ -15,7 +15,7 @@ static_assert(unique_int());
 
 consteval auto custom_id() {
 	struct Id {
-		consteval auto operator()(int const i) const { return i == -1; }
+		constexpr auto operator()(int const i) const { return i == -1; }
 	};
 	auto i = Unique<int, Noop<int>, Id>{-1};
 	if (!i.is_identity()) { return false; }
@@ -33,7 +33,7 @@ consteval auto custom_deleter() {
 		struct Deleter {
 			int* deleted{};
 			int* called{};
-			consteval void operator()(int const i) const {
+			constexpr void operator()(int const i) const {
 				if (deleted == nullptr || called == nullptr) { return; }
 				*deleted = i;
 				++(*called);
