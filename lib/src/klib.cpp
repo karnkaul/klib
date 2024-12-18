@@ -1021,7 +1021,7 @@ void TextTable::append_to(std::string& out) const {
 
 	static constexpr std::string_view per_column_spacing_v{"|  "};
 	static constexpr std::string_view end_spacing_v{"|"};
-	auto const spacing = m_columns.size() * per_column_spacing_v.size() + end_spacing_v.size();
+	auto const spacing = (m_columns.size() * per_column_spacing_v.size()) + end_spacing_v.size();
 	auto const total_width = std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) { return s + c.max_width; });
 	append_border(out, total_width);
 	append_titles(out);
