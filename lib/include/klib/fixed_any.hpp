@@ -1,6 +1,6 @@
 #pragma once
+#include <klib/assert.hpp>
 #include <array>
-#include <concepts>
 #include <cstddef>
 #include <utility>
 
@@ -8,6 +8,8 @@ namespace klib {
 template <std::size_t MaxSize = sizeof(void*)>
 class FixedAny {
   public:
+	FixedAny() = default;
+
 	template <typename Type>
 		requires(sizeof(Type) <= MaxSize)
 	/*implicit*/ FixedAny(Type t) : m_vtable(&VTable::template get<Type>()) {
@@ -55,6 +57,18 @@ class FixedAny {
 		return const_cast<Type*>(std::as_const(*this).template get_if<Type>());
 	}
 
+	template <typename Type>
+	[[nodiscard]] auto get() const -> Type const& {
+		auto* ret = get_if<Type>();
+		KLIB_ASSERT(ret != nullptr);
+		return *ret;
+	}
+
+	template <typename Type>
+	[[nodiscard]] auto get_if() -> Type& {
+		return const_cast<Type*>(std::as_const(*this).template get<Type>());
+	}
+
   private:
 	struct VTable {
 		void (*move_construct)(void* src, void* dst){};
@@ -64,8 +78,8 @@ class FixedAny {
 		template <typename Type>
 		static auto get() -> VTable const& {
 			static auto ret = VTable{
-				.move_construct = [](void* src, void* dst) { new (dst) Type(std::move(*static_cast<Type>(src))); },
-				.copy_construct = [](void const* src, void* dst) { new (dst) Type(*static_cast<Type>(src)); },
+				.move_construct = [](void* src, void* dst) { new (dst) Type(std::move(*static_cast<Type*>(src))); },
+				.copy_construct = [](void const* src, void* dst) { new (dst) Type(*static_cast<Type const*>(src)); },
 				.destroy = [](void* dst) { std::destroy_at(static_cast<Type*>(dst)); },
 			};
 			return ret;
