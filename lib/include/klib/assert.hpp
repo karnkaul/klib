@@ -1,10 +1,11 @@
 #pragma once
 #include <klib/debug_trap.hpp>
+#include <cstdint>
 #include <exception>
 #include <stacktrace>
 
 namespace klib::assertion {
-enum class FailAction : int { Throw, Terminate, None };
+enum class FailAction : std::uint8_t { Throw, Terminate, None };
 
 struct Failure : std::exception {
 	[[nodiscard]] auto what() const noexcept -> char const* final { return "assertion failure"; }
@@ -28,7 +29,7 @@ void trigger_failure();
 #if defined(KLIB_DEBUG)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define KLIB_ASSERT(expr)                                                                                                                                      \
-	if (!(expr)) {                                                                                                                                             \
+	if (!bool(expr)) {                                                                                                                                         \
 		::klib::assertion::print(#expr);                                                                                                                       \
 		KLIB_DEBUG_TRAP();                                                                                                                                     \
 		::klib::assertion::trigger_failure();                                                                                                                  \
