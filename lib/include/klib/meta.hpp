@@ -2,24 +2,37 @@
 #include <type_traits>
 
 namespace klib {
-template <typename... Ts>
-class LargestOfT;
+template <template <typename, typename> typename Cmp, typename T, typename... Ts>
+class TypeSelector;
 
-template <typename T>
-class LargestOfT<T> {
+template <template <typename, typename> typename Cmp, typename T>
+class TypeSelector<Cmp, T> {
   public:
 	using type = T;
 };
 
-template <typename T, typename... Ts>
-class LargestOfT<T, Ts...> {
+template <template <typename, typename> typename Cmp, typename T, typename... Ts>
+class TypeSelector {
 	using Lhs = T;
-	using Rhs = LargestOfT<Ts...>::type;
+	using Rhs = TypeSelector<Cmp, Ts...>::type;
 
   public:
-	using type = std::conditional_t<(sizeof(Lhs) >= sizeof(Rhs)), Lhs, Rhs>;
+	using type = Cmp<Lhs, Rhs>::type;
 };
 
-template <typename List>
-using LargestOf = LargestOfT<List>::type;
+template <typename T, typename U>
+struct SmallerType {
+	using type = std::conditional_t<(sizeof(T) <= sizeof(U)), T, U>;
+};
+
+template <typename T, typename U>
+struct LargerType {
+	using type = std::conditional_t<(sizeof(T) >= sizeof(U)), T, U>;
+};
+
+template <typename T, typename... Ts>
+using LargestOf = TypeSelector<LargerType, T, Ts...>::type;
+
+template <typename T, typename... Ts>
+using SmallestOf = TypeSelector<SmallerType, T, Ts...>::type;
 } // namespace klib

@@ -1,4 +1,5 @@
 #include <klib/fixed_any.hpp>
+#include <klib/meta.hpp>
 #include <klib/unit_test.hpp>
 #include <string>
 #include <vector>
@@ -18,7 +19,8 @@ TEST(fixed_any_literals) {
 }
 
 TEST(fixed_any_classes) {
-	auto x = FixedAny<sizeof(std::string)>{};
+	static constexpr auto size_v = sizeof(LargestOf<std::string, std::vector<int>>);
+	auto x = FixedAny<size_v>{};
 	x = std::string{"foo"};
 	ASSERT(x.contains<std::string>());
 	EXPECT(x.get<std::string>() == "foo");
