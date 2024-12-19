@@ -1,6 +1,5 @@
 #include <klib/unit_test.hpp>
 #include <klib/version_str.hpp>
-#include <klib/build_version.hpp>
 
 namespace {
 using namespace klib;

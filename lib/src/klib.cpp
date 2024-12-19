@@ -121,7 +121,6 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
-#include <klib/build_version.hpp>
 #include <klib/version_str.hpp>
 
 void klib::append_to(std::string& out, Version const& version) {
