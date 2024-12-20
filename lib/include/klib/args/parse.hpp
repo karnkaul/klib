@@ -2,7 +2,6 @@
 #include <klib/args/arg.hpp>
 #include <klib/args/parse_info.hpp>
 #include <klib/args/parse_result.hpp>
-#include <klib/build_version.hpp>
 
 namespace klib::args {
 [[nodiscard]] auto parse(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult;

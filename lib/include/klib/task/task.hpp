@@ -1,5 +1,4 @@
 #pragma once
-#include <klib/build_version.hpp>
 #include <klib/task/id.hpp>
 #include <klib/task/status.hpp>
 #include <klib/task/task_fwd.hpp>

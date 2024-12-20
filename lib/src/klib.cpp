@@ -121,7 +121,6 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
-#include <klib/build_version.hpp>
 #include <klib/version_str.hpp>
 
 void klib::append_to(std::string& out, Version const& version) {
@@ -965,6 +964,15 @@ namespace assertion {
 namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto g_fail_action = std::atomic<assertion::FailAction>{assertion::FailAction::Throw};
+
+auto is_internal(std::string_view const trace_description) -> bool {
+	static constexpr auto phrases_v = std::array{
+		"!invoke_main+",
+		"start_call_main",
+	};
+	if (trace_description.empty()) { return true; }
+	return std::ranges::any_of(phrases_v, [trace_description](std::string_view const phrase) { return trace_description.contains(phrase); });
+}
 } // namespace
 } // namespace assertion
 
@@ -976,7 +984,7 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 	if constexpr (use_stacktrace_v) {
 		for (auto const& entry : trace) {
 			auto const description = entry.description();
-			if (description.empty() || description.contains("!invoke_main+")) { return; }
+			if (is_internal(description)) { return; }
 			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
 		}
 	}
@@ -1012,7 +1020,7 @@ void TextTable::append_to(std::string& out) const {
 
 	static constexpr std::string_view per_column_spacing_v{"|  "};
 	static constexpr std::string_view end_spacing_v{"|"};
-	auto const spacing = m_columns.size() * per_column_spacing_v.size() + end_spacing_v.size();
+	auto const spacing = (m_columns.size() * per_column_spacing_v.size()) + end_spacing_v.size();
 	auto const total_width = std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) { return s + c.max_width; });
 	append_border(out, total_width);
 	append_titles(out);

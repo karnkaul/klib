@@ -11,12 +11,12 @@ class ScopedDefer {
 	/*implicit*/ ScopedDefer(F func = {}) : m_func(std::move(func)) {}
 
   private:
-	struct Deleter {
-		void operator()(Func func) const noexcept {
-			if (!func) { return; }
-			func();
-		}
+	struct Id {
+		auto operator()(Func const& f) const noexcept -> bool { return f == nullptr; }
 	};
-	Unique<Func, Deleter> m_func;
+	struct Deleter {
+		void operator()(Func func) const noexcept { func(); }
+	};
+	Unique<Func, Deleter, Id> m_func;
 };
 } // namespace klib
