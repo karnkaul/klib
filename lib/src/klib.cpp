@@ -932,6 +932,7 @@ void log::print(Input const& input) {
 
 	auto* out = input.level == Level::Error ? stderr : stdout;
 	std::print(out, "{}", text);
+	std::fflush(out);
 
 #if defined(_WIN32)
 	OutputDebugStringA(text.c_str());
