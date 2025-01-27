@@ -1,6 +1,5 @@
 #pragma once
 #include <klib/args/binding.hpp>
-#include <cstdint>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -8,9 +7,10 @@
 namespace klib::args {
 class Arg;
 
-enum class ArgType : std::int8_t { Optional, Required };
-constexpr auto optional_v = ArgType::Optional;
-constexpr auto required_v = ArgType::Required;
+struct Required {};
+constexpr auto required_v = Required{};
+
+using ArgType = std::variant<Required, bool*>;
 
 struct ParamOption {
 	Binding binding;
@@ -28,12 +28,11 @@ struct ParamPositional {
 	ArgType arg_type;
 	Binding binding;
 	void* data;
-	bool* was_set;
 	bool is_list;
 	std::string_view name;
 	std::string_view help_text;
 
-	[[nodiscard]] constexpr auto is_required() const -> bool { return arg_type == required_v; }
+	[[nodiscard]] constexpr auto is_required() const -> bool { return std::holds_alternative<Required>(arg_type); }
 
 	[[nodiscard]] auto to_string() const -> std::string { return binding.to_string(data); }
 };
@@ -60,12 +59,12 @@ class Arg {
 	// Positional arguments
 	template <ParamT Type>
 	// NOLINTNEXTLINE(readability-non-const-parameter)
-	Arg(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {}, bool* was_set = {})
-		: m_param(ParamPositional{type, Binding::create<Type>(), &out, was_set, false, name, help_text}) {}
+	Arg(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {})
+		: m_param(ParamPositional{type, Binding::create<Type>(), &out, false, name, help_text}) {}
 
 	template <ParamT Type>
 	Arg(std::vector<Type>& out, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{optional_v, Binding::create<std::vector<Type>>(), &out, nullptr, true, name, help_text}) {}
+		: m_param(ParamPositional{nullptr, Binding::create<std::vector<Type>>(), &out, true, name, help_text}) {}
 
 	// Commands
 	Arg(std::span<Arg const> args, std::string_view name, std::string_view help_text = {});
@@ -89,22 +88,27 @@ class Arg {
 	Param m_param;
 };
 
-[[nodiscard]] inline auto flag(bool& out, std::string_view const key, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
+[[nodiscard]] inline auto named_flag(bool& out, std::string_view const key, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
 	return {out, key, help_text, was_set};
 }
 
 template <ParamT Type>
-[[nodiscard]] auto option(Type& out, std::string_view const key, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
+[[nodiscard]] auto named_option(Type& out, std::string_view const key, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
 	return {out, key, help_text, was_set};
 }
 
 template <ParamT Type>
-[[nodiscard]] auto positional(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
-	return {out, type, name, help_text, was_set};
+[[nodiscard]] auto positional_required(Type& out, std::string_view const name, std::string_view const help_text = {}) -> Arg {
+	return {out, required_v, name, help_text};
 }
 
 template <ParamT Type>
-[[nodiscard]] auto list(std::vector<Type>& out, std::string_view const name, std::string_view const help_text = {}) -> Arg {
+[[nodiscard]] auto positional_optional(Type& out, std::string_view const name, std::string_view const help_text = {}, bool* was_set = {}) -> Arg {
+	return {out, was_set, name, help_text};
+}
+
+template <ParamT Type>
+[[nodiscard]] auto positional_list(std::vector<Type>& out, std::string_view const name, std::string_view const help_text = {}) -> Arg {
 	return {out, name, help_text};
 }
 
