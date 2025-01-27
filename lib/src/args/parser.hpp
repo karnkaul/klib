@@ -2,7 +2,6 @@
 #include <args/scanner.hpp>
 #include <klib/args/parse_info.hpp>
 #include <klib/args/parse_result.hpp>
-#include <klib/args/printer.hpp>
 
 namespace klib::args {
 class Parser {
