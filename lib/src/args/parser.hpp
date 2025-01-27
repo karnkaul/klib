@@ -1,17 +1,10 @@
 #pragma once
 #include <args/scanner.hpp>
-#include <klib/args/app_info.hpp>
+#include <klib/args/parse_info.hpp>
 #include <klib/args/parse_result.hpp>
 #include <klib/args/printer.hpp>
 
 namespace klib::args {
-struct ParseInfo {
-	std::string_view help_text{};
-	std::string_view version{};
-	std::string_view epilogue{};
-	IPrinter* printer{};
-};
-
 class Parser {
   public:
 	using Result = ParseResult;
@@ -53,8 +46,6 @@ class Parser {
 
 	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
 	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
-
-	inline static Printer s_printer{};
 
 	ParseInfo m_info{};
 	std::string_view m_exe_name{};

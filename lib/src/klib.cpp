@@ -611,7 +611,10 @@ void Parser::Printer::printerr(std::string_view const text) { std::println(stder
 
 Parser::Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
 	: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {
-	if (m_info.printer == nullptr) { m_info.printer = &s_printer; }
+	if (m_info.printer == nullptr) {
+		static Printer s_printer{};
+		m_info.printer = &s_printer;
+	}
 }
 
 auto Parser::parse(std::span<Arg const> args) -> ParseResult {
@@ -805,19 +808,14 @@ auto args::parse_string(std::span<Arg const> args, std::string_view const input,
 	return parser.parse(args);
 }
 
-auto args::parse_main(AppInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
+auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
 	auto exe_name = std::string_view{"<app>"};
 	auto cli_args = std::span{argv, std::size_t(argc)};
 	if (!cli_args.empty()) {
 		exe_name = get_exe_name(cli_args.front());
 		cli_args = cli_args.subspan(1);
 	};
-	auto const parse_info = ParseInfo{
-		.help_text = info.help_text,
-		.version = info.version,
-		.epilogue = info.epilogue,
-	};
-	auto parser = Parser{parse_info, exe_name, cli_args};
+	auto parser = Parser{info, exe_name, cli_args};
 	return parser.parse(args);
 }
 } // namespace klib
