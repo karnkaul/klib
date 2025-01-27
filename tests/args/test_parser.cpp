@@ -20,8 +20,8 @@ TEST(arg_parser_values) {
 		auto a = std::string_view{};
 		auto bar = 0;
 		auto args = std::array{
-			Arg{a, "a"},
-			Arg{bar, "bar"},
+			named_option(a, "a"),
+			named_option(bar, "bar"),
 		};
 		auto const result = parser.parse(args);
 		EXPECT(!result.early_return());
@@ -42,10 +42,10 @@ TEST(arg_parser_options) {
 		auto c = 0;
 		auto d = false;
 		auto const args = std::array{
-			Arg{a, "a,alpha"},
-			Arg{b, "b,beta"},
-			Arg{c, "c,charlie"},
-			Arg{d, "d,delta"},
+			named_flag(a, "a,alpha"),
+			named_flag(b, "b,beta"),
+			named_option(c, "c,charlie"),
+			named_flag(d, "d,delta"),
 		};
 		auto const result = parser.parse(args);
 		EXPECT(!result.early_return());
@@ -68,9 +68,9 @@ TEST(arg_parser_positionals) {
 	int b{};
 	std::string_view c{};
 	auto const args = std::array{
-		Arg{a, required_v, "a"},
-		Arg{b, required_v, "b"},
-		Arg{c, required_v, "c"},
+		positional_required(a, "a"),
+		positional_required(b, "b"),
+		positional_required(c, "c"),
 	};
 	auto const result = parser.parse(args);
 	EXPECT(!result.early_return());
@@ -90,7 +90,13 @@ TEST(arg_parser_options_positionals) {
 	std::string_view foo{};
 	std::string_view d{};
 	auto const args = std::array{
-		Arg{a, "a"}, Arg{b, "b"}, Arg{c, "c"}, Arg{d, "d"}, Arg{forty_two, required_v, "42"}, Arg{minus_five, required_v, "-5"}, Arg{foo, required_v, "foo"},
+		named_flag(a, "a"),
+		named_flag(b, "b"),
+		named_option(c, "c"),
+		named_option(d, "d"),
+		positional_required(forty_two, "42"),
+		positional_required(minus_five, "-5"),
+		positional_required(foo, "foo"),
 	};
 	auto parser = Parser{app_info_v, {}, cli_args};
 	auto const result = parser.parse(args);
@@ -104,13 +110,13 @@ TEST(arg_parser_command) {
 	bool cmd_flag{};
 	std::string_view cmd_arg{};
 	auto const cmd_args = std::array{
-		Arg{cmd_flag, "cmd-flag"},
-		Arg{cmd_arg, required_v, "cmd-arg"},
+		named_flag(cmd_flag, "cmd-flag"),
+		positional_required(cmd_arg, "cmd-arg"),
 	};
 	bool app_flag{};
 	auto const app_args = std::array{
-		Arg{app_flag, "app-flag"},
-		Arg{cmd_args, "cmd"},
+		named_flag(app_flag, "app-flag"),
+		command(cmd_args, "cmd"),
 	};
 	auto parser = Parser{app_info_v, {}, cli_args};
 	auto const result = parser.parse(app_args);

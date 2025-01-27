@@ -1,6 +1,7 @@
 #pragma once
 #include <klib/concepts.hpp>
 #include <charconv>
+#include <string_view>
 #include <vector>
 
 namespace klib::args {
