@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(klib VERSION "0.3.4")
+project(klib VERSION "0.3.5")
 
 option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
 

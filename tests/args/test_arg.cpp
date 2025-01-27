@@ -1,3 +1,4 @@
+#include <args/assigner.hpp>
 #include <klib/args/arg.hpp>
 #include <klib/unit_test.hpp>
 #include <ranges>
@@ -15,7 +16,7 @@ TEST(arg_flag) {
 	EXPECT(option.letter == 'f');
 	EXPECT(option.word == "flag");
 	EXPECT(flag == false);
-	EXPECT(option.assign({}));
+	EXPECT(Assigner{}(option));
 	EXPECT(flag == true);
 }
 
@@ -29,9 +30,9 @@ TEST(arg_option_number) {
 	EXPECT(option.letter == 'x');
 	EXPECT(option.word.empty());
 	EXPECT(x == 0);
-	EXPECT(option.assign("42"));
+	EXPECT(Assigner{"42"}(option));
 	EXPECT(x == 42);
-	EXPECT(!option.assign("abc"));
+	EXPECT(!Assigner{"abc"}(option));
 
 	float foo{};
 	arg = Arg{foo, "foo"};
@@ -42,9 +43,9 @@ TEST(arg_option_number) {
 	EXPECT(option.letter == '\0');
 	EXPECT(option.word == "foo");
 	EXPECT(foo == 0.0f);
-	EXPECT(option.assign("3.14"));
+	EXPECT(Assigner{"3.14"}(option));
 	EXPECT(std::abs(foo - 3.14) < 0.001f);
-	EXPECT(!option.assign("abc"));
+	EXPECT(!Assigner{"abc"}(option));
 }
 
 TEST(arg_positional_number) {
@@ -55,8 +56,8 @@ TEST(arg_positional_number) {
 	auto positional = std::get<ParamPositional>(param);
 	EXPECT(positional.arg_type == ArgType::Required);
 	EXPECT(positional.name == "x");
-	EXPECT(positional.assign("42") && x == 42);
-	EXPECT(!positional.assign("abc"));
+	EXPECT(Assigner{"42"}(positional) && x == 42);
+	EXPECT(!Assigner{"abc"}(positional));
 
 	float foo{};
 	arg = Arg{foo, ArgType::Optional, "foo"};
@@ -65,8 +66,8 @@ TEST(arg_positional_number) {
 	positional = std::get<ParamPositional>(param);
 	EXPECT(positional.arg_type == ArgType::Optional);
 	EXPECT(positional.name == "foo");
-	EXPECT(positional.assign("3.14") && std::abs(foo - 3.14) < 0.001f);
-	EXPECT(!positional.assign("abc"));
+	EXPECT(Assigner{"3.14"}(positional) && std::abs(foo - 3.14) < 0.001f);
+	EXPECT(!Assigner{"abc"}(positional));
 }
 
 TEST(arg_string) {
@@ -78,7 +79,7 @@ TEST(arg_string) {
 	EXPECT(!option.is_flag);
 	EXPECT(option.letter == '\0');
 	EXPECT(option.word == "foo");
-	EXPECT(option.assign("bar"));
+	EXPECT(Assigner{"bar"}(option));
 	EXPECT(foo == "bar");
 
 	foo = {};
@@ -88,7 +89,7 @@ TEST(arg_string) {
 	auto const& positional = std::get<ParamPositional>(param);
 	EXPECT(positional.arg_type == ArgType::Optional);
 	EXPECT(positional.name == "foo");
-	EXPECT(positional.assign("bar") && foo == "bar");
+	EXPECT(Assigner{"bar"}(positional) && foo == "bar");
 }
 
 TEST(arg_command) {

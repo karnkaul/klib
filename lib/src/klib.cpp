@@ -364,13 +364,14 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // args
 
+#include <args/assigner.hpp>
 #include <args/parser.hpp>
 #include <klib/args/parse.hpp>
 
 namespace klib {
 namespace args {
-Arg::Arg(bool& out, std::string_view const key, std::string_view const help_text)
-	: m_param(ParamOption{Binding::create<bool>(), &out, true, to_letter(key), to_word(key), help_text}) {}
+Arg::Arg(bool& out, std::string_view const key, std::string_view const help_text, bool* was_set)
+	: m_param(ParamOption{Binding::create<bool>(), &out, was_set, true, to_letter(key), to_word(key), help_text}) {}
 
 Arg::Arg(std::span<Arg const> args, std::string_view const name, std::string_view const help_text)
 	: m_param(ParamCommand{args.data(), args.size(), name, help_text}) {}
@@ -675,7 +676,7 @@ auto Parser::parse_letters() -> ParseResult {
 		if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_option(letter); }
 		if (!is_last) {
 			if (!option->is_flag) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_requires_argument({&letter, 1}); }
-			[[maybe_unused]] auto const unused = option->assign({});
+			[[maybe_unused]] auto const unused = Assigner{}(*option);
 		} else {
 			return parse_last_option(*option, {&letter, 1});
 		}
@@ -695,7 +696,7 @@ auto Parser::parse_word() -> ParseResult {
 auto Parser::parse_last_option(ParamOption const& option, std::string_view input) -> ParseResult {
 	if (option.is_flag) {
 		if (!m_scanner.get_value().empty()) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_is_flag(input); }
-		[[maybe_unused]] auto const unused = option.assign({});
+		[[maybe_unused]] auto const unused = Assigner{}(option);
 		return {};
 	}
 
@@ -705,7 +706,7 @@ auto Parser::parse_last_option(ParamOption const& option, std::string_view input
 		m_scanner.next();
 		value = m_scanner.get_value();
 	}
-	if (!option.assign(value)) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(input, value); }
+	if (!Assigner{value}(option)) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(input, value); }
 
 	return {};
 }
@@ -718,7 +719,7 @@ auto Parser::parse_argument() -> ParseResult {
 auto Parser::parse_positional() -> ParseResult {
 	auto const* pos = next_positional();
 	if (pos == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.extraneous_argument(m_scanner.get_value()); }
-	if (!pos->assign(m_scanner.get_value())) {
+	if (!Assigner{m_scanner.get_value()}(*pos)) {
 		return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(pos->name, m_scanner.get_value());
 	}
 	return {};
