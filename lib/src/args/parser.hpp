@@ -11,6 +11,8 @@ class Parser {
 	explicit Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
 		: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {}
 
+	explicit Parser(std::span<char const* const> cli_args) : m_info(empty_v), m_scanner(cli_args) {}
+
 	[[nodiscard]] auto parse(std::span<Arg const> args) -> Result;
 
   private:
@@ -40,8 +42,10 @@ class Parser {
 	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
 	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
 
+	static constexpr auto empty_v = ParseInfo{};
+
 	ParseInfo const& m_info;
-	std::string_view m_exe_name;
+	std::string_view m_exe_name{};
 
 	Scanner m_scanner;
 	std::span<Arg const> m_args{};
