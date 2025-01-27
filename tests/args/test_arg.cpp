@@ -50,21 +50,21 @@ TEST(arg_option_number) {
 
 TEST(arg_positional_number) {
 	int x{};
-	auto arg = Arg{x, ArgType::Required, "x"};
+	auto arg = Arg{x, required_v, "x"};
 	auto param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	auto positional = std::get<ParamPositional>(param);
-	EXPECT(positional.arg_type == ArgType::Required);
+	EXPECT(positional.is_required());
 	EXPECT(positional.name == "x");
 	EXPECT(Assigner{"42"}(positional) && x == 42);
 	EXPECT(!Assigner{"abc"}(positional));
 
 	float foo{};
-	arg = Arg{foo, ArgType::Optional, "foo"};
+	arg = Arg{foo, ArgType{nullptr}, "foo"};
 	param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	positional = std::get<ParamPositional>(param);
-	EXPECT(positional.arg_type == ArgType::Optional);
+	EXPECT(!positional.is_required());
 	EXPECT(positional.name == "foo");
 	EXPECT(Assigner{"3.14"}(positional) && std::abs(foo - 3.14) < 0.001f);
 	EXPECT(!Assigner{"abc"}(positional));
@@ -83,11 +83,11 @@ TEST(arg_string) {
 	EXPECT(foo == "bar");
 
 	foo = {};
-	arg = Arg{foo, ArgType::Optional, "foo"};
+	arg = Arg{foo, ArgType{nullptr}, "foo"};
 	param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	auto const& positional = std::get<ParamPositional>(param);
-	EXPECT(positional.arg_type == ArgType::Optional);
+	EXPECT(!positional.is_required());
 	EXPECT(positional.name == "foo");
 	EXPECT(Assigner{"bar"}(positional) && foo == "bar");
 }
@@ -100,7 +100,7 @@ TEST(arg_command) {
 	auto params = CmdParams{};
 	auto const args = std::array{
 		Arg{params.verbose, "v,verbose"},
-		Arg{params.number, ArgType::Required, "number"},
+		Arg{params.number, required_v, "number"},
 	};
 	auto const cmd_arg = Arg{args, "cmd"};
 	auto param = cmd_arg.get_param();

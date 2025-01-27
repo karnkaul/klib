@@ -68,9 +68,9 @@ TEST(arg_parser_positionals) {
 	int b{};
 	std::string_view c{};
 	auto const args = std::array{
-		Arg{a, ArgType::Required, "a"},
-		Arg{b, ArgType::Required, "b"},
-		Arg{c, ArgType::Required, "c"},
+		Arg{a, required_v, "a"},
+		Arg{b, required_v, "b"},
+		Arg{c, required_v, "c"},
 	};
 	auto const result = parser.parse(args);
 	EXPECT(!result.early_return());
@@ -90,13 +90,7 @@ TEST(arg_parser_options_positionals) {
 	std::string_view foo{};
 	std::string_view d{};
 	auto const args = std::array{
-		Arg{a, "a"},
-		Arg{b, "b"},
-		Arg{c, "c"},
-		Arg{d, "d"},
-		Arg{forty_two, ArgType::Required, "42"},
-		Arg{minus_five, ArgType::Required, "-5"},
-		Arg{foo, ArgType::Required, "foo"},
+		Arg{a, "a"}, Arg{b, "b"}, Arg{c, "c"}, Arg{d, "d"}, Arg{forty_two, required_v, "42"}, Arg{minus_five, required_v, "-5"}, Arg{foo, required_v, "foo"},
 	};
 	auto parser = Parser{app_info_v, {}, cli_args};
 	auto const result = parser.parse(args);
@@ -111,7 +105,7 @@ TEST(arg_parser_command) {
 	std::string_view cmd_arg{};
 	auto const cmd_args = std::array{
 		Arg{cmd_flag, "cmd-flag"},
-		Arg{cmd_arg, ArgType::Required, "cmd-arg"},
+		Arg{cmd_arg, required_v, "cmd-arg"},
 	};
 	bool app_flag{};
 	auto const app_args = std::array{
