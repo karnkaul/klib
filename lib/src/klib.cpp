@@ -448,15 +448,16 @@ struct ErrorPrinter {
 	}
 
 	void append_error_prefix() {
-		str += exe_name;
-		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), " {}", cmd_name); }
-		str += ": ";
+		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
+		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
+		if (!exe_name.empty() || !cmd_name.empty()) { str += ": "; }
 	}
 
 	void append_helpline() {
-		std::format_to(std::back_inserter(str), "Try '{}", exe_name);
-		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), " {}", cmd_name); }
-		str += " --help' for more information.\n";
+		str += "Try '";
+		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
+		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
+		str += "--help' for more information.\n";
 	}
 
 	std::string_view exe_name{};
@@ -470,21 +471,21 @@ struct PrintParam {
 	bool* has_commands{};
 
 	void operator()(ParamOption const& o) const {
-		out << " [";
+		out << "[";
 		if (o.letter != '\0') {
 			out << '-' << o.letter;
 			if (!o.word.empty()) { out << '|'; }
 		}
 		if (!o.word.empty()) { out << "--" << o.word; }
 		if (!o.is_flag) { out << "(=" << o.to_string() << ')'; }
-		out << ']';
+		out << "] ";
 	}
 
 	void operator()(ParamPositional const& p) const {
 		std::string_view const wrap = p.is_required() ? "<>" : "[]";
-		out << ' ' << wrap[0] << p.name;
+		out << wrap[0] << p.name;
 		if (!p.is_list && !p.is_required()) { out << "(=" << p.to_string() << ")"; }
-		out << wrap[1];
+		out << wrap[1] << ' ';
 	}
 
 	void operator()(ParamCommand const& /*c*/) const {
@@ -493,8 +494,8 @@ struct PrintParam {
 };
 
 auto append_exe_cmd(std::ostream& out, std::string_view const exe, std::string_view const cmd) {
-	out << exe;
-	if (!cmd.empty()) { out << " " << cmd; }
+	if (!exe.empty()) { out << exe << " "; }
+	if (!cmd.empty()) { out << cmd << " "; }
 }
 
 void append_positionals(std::ostream& out, std::span<Arg const> args) {
@@ -503,7 +504,7 @@ void append_positionals(std::ostream& out, std::span<Arg const> args) {
 	}
 }
 
-void append_option_list(std::ostream& out, std::size_t const width, std::span<Arg const> args) {
+void append_option_list(std::ostream& out, std::size_t const width, std::span<Arg const> args, bool const version) {
 	out << "\nOPTIONS\n";
 	auto const print_option = [&out, width](std::string_view const key, std::string_view const help_text) {
 		out << "  " << std::setw(int(width)) << key << help_text << "\n";
@@ -528,7 +529,7 @@ void append_option_list(std::ostream& out, std::size_t const width, std::span<Ar
 	}
 	print_option("    --help", "display this help and exit");
 	print_option("    --usage", "print usage and exit");
-	print_option("    --version", "print version text and exit");
+	if (version) { print_option("    --version", "print version text and exit"); }
 }
 
 void append_command_list(std::ostream& out, std::size_t const width, std::span<Arg const> args) {
@@ -565,20 +566,20 @@ void print_help(ParseInfo const& info, std::string_view const exe, std::string_v
 	out << "Usage:\n  ";
 	append_exe_cmd(out, exe, cmd);
 
-	if (has_options) { out << " [OPTION...]"; }
+	if (has_options) { out << "[OPTION...] "; }
 	if (has_commands) {
-		out << " <COMMAND> [COMMAND_ARGS...]";
+		out << "<COMMAND> [COMMAND_ARGS...] ";
 	} else if (has_positionals) {
 		append_positionals(out, args);
 	}
 	out << "\n  ";
 	append_exe_cmd(out, exe, cmd);
-	if (has_commands) { out << " [COMMAND]"; }
-	out << " [--help|--usage";
+	if (has_commands) { out << "[COMMAND] "; }
+	out << "<--help|--usage";
 	if (has_version) { out << "|--version"; }
-	out << "]\n" << std::left;
+	out << ">\n" << std::left;
 
-	append_option_list(out, options_width + 4, args);
+	append_option_list(out, options_width + 4, args, has_version);
 
 	if (has_commands) { append_command_list(out, commands_width + 4, args); }
 
@@ -595,7 +596,7 @@ void print_usage(std::string_view const exe, std::string_view const cmd, std::sp
 	auto const print_param = PrintParam{out, &has_commands};
 	for (auto const& arg : args) { std::visit(print_param, arg.get_param()); }
 
-	if (has_commands) { out << " <COMMAND> [COMMAND_ARGS...]"; }
+	if (has_commands) { out << "<COMMAND> [COMMAND_ARGS...] "; }
 
 	std::println("{}", out.str());
 }
