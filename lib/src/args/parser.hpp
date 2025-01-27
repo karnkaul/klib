@@ -46,8 +46,6 @@ class Parser {
 	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
 	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
 
-	inline static Printer s_printer{};
-
 	ParseInfo m_info{};
 	std::string_view m_exe_name{};
 

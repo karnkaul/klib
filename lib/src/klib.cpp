@@ -611,7 +611,10 @@ void Parser::Printer::printerr(std::string_view const text) { std::println(stder
 
 Parser::Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
 	: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {
-	if (m_info.printer == nullptr) { m_info.printer = &s_printer; }
+	if (m_info.printer == nullptr) {
+		static Printer s_printer{};
+		m_info.printer = &s_printer;
+	}
 }
 
 auto Parser::parse(std::span<Arg const> args) -> ParseResult {
@@ -795,17 +798,17 @@ auto Parser::check_required() -> ParseResult {
 }
 } // namespace args
 
-auto args::parse(std::span<Arg const> args, std::string_view const input, IPrinter* printer) -> ParseResult {
-	auto cli_args = std::vector<std::string>{};
-	for (auto const arg : std::views::split(input, std::string_view{" "})) { cli_args.emplace_back(std::string_view{arg}); }
-	auto cli_args_view = std::vector<char const*>{};
-	cli_args_view.reserve(cli_args.size());
-	for (auto const& arg : cli_args) { cli_args_view.push_back(arg.c_str()); }
-	auto parser = Parser{cli_args_view, printer};
+auto args::parse_string(std::span<Arg const> args, std::string_view const input, IPrinter* printer) -> ParseResult {
+	auto cli_args_storage = std::vector<std::string>{};
+	for (auto const arg : std::views::split(input, std::string_view{" "})) { cli_args_storage.emplace_back(std::string_view{arg}); }
+	auto cli_args = std::vector<char const*>{};
+	cli_args.reserve(cli_args_storage.size());
+	for (auto const& arg : cli_args_storage) { cli_args.push_back(arg.c_str()); }
+	auto parser = Parser{cli_args, printer};
 	return parser.parse(args);
 }
 
-auto args::parse(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
+auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
 	auto exe_name = std::string_view{"<app>"};
 	auto cli_args = std::span{argv, std::size_t(argc)};
 	if (!cli_args.empty()) {

@@ -8,7 +8,7 @@ using namespace klib::args;
 
 TEST(arg_flag) {
 	bool flag{};
-	auto const arg = Arg{flag, "f,flag"};
+	auto const arg = named_flag(flag, "f,flag");
 	auto const& param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamOption>(param));
 	auto const& option = std::get<ParamOption>(param);
@@ -22,7 +22,7 @@ TEST(arg_flag) {
 
 TEST(arg_option_number) {
 	int x{};
-	auto arg = Arg{x, "x"};
+	auto arg = named_option(x, "x");
 	auto param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamOption>(param));
 	auto option = std::get<ParamOption>(param);
@@ -35,7 +35,7 @@ TEST(arg_option_number) {
 	EXPECT(!Assigner{"abc"}(option));
 
 	float foo{};
-	arg = Arg{foo, "foo"};
+	arg = named_option(foo, "foo");
 	param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamOption>(param));
 	option = std::get<ParamOption>(param);
@@ -50,7 +50,7 @@ TEST(arg_option_number) {
 
 TEST(arg_positional_number) {
 	int x{};
-	auto arg = Arg{x, required_v, "x"};
+	auto arg = positional_required(x, "x");
 	auto param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	auto positional = std::get<ParamPositional>(param);
@@ -60,19 +60,23 @@ TEST(arg_positional_number) {
 	EXPECT(!Assigner{"abc"}(positional));
 
 	float foo{};
-	arg = Arg{foo, ArgType{nullptr}, "foo"};
+	bool was_set{};
+	arg = positional_optional(foo, "foo", {}, &was_set);
 	param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	positional = std::get<ParamPositional>(param);
 	EXPECT(!positional.is_required());
 	EXPECT(positional.name == "foo");
 	EXPECT(Assigner{"3.14"}(positional) && std::abs(foo - 3.14) < 0.001f);
+	EXPECT(was_set);
+	was_set = false;
 	EXPECT(!Assigner{"abc"}(positional));
+	EXPECT(!was_set);
 }
 
 TEST(arg_string) {
 	std::string_view foo{};
-	auto arg = Arg{foo, "foo"};
+	auto arg = named_option(foo, "foo");
 	auto param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamOption>(param));
 	auto const& option = std::get<ParamOption>(param);
@@ -83,13 +87,31 @@ TEST(arg_string) {
 	EXPECT(foo == "bar");
 
 	foo = {};
-	arg = Arg{foo, ArgType{nullptr}, "foo"};
+	bool was_set{};
+	arg = positional_optional(foo, "foo", {}, &was_set);
 	param = arg.get_param();
 	ASSERT(std::holds_alternative<ParamPositional>(param));
 	auto const& positional = std::get<ParamPositional>(param);
 	EXPECT(!positional.is_required());
 	EXPECT(positional.name == "foo");
 	EXPECT(Assigner{"bar"}(positional) && foo == "bar");
+	EXPECT(was_set);
+}
+
+TEST(arg_positional_list) {
+	auto foo = std::vector<int>{};
+	auto arg = positional_list(foo, "foo");
+	auto param = arg.get_param();
+	ASSERT(std::holds_alternative<ParamPositional>(param));
+	auto const& positional = std::get<ParamPositional>(param);
+	EXPECT(!positional.is_required());
+	EXPECT(!positional.is_required());
+	EXPECT(positional.name == "foo");
+	EXPECT(Assigner{"1"}(positional));
+	EXPECT(Assigner{"2"}(positional));
+	EXPECT(!Assigner{"bar"}(positional));
+	ASSERT(foo.size() == 2);
+	EXPECT(foo[0] == 1 && foo[1] == 2);
 }
 
 TEST(arg_command) {
@@ -99,10 +121,10 @@ TEST(arg_command) {
 	};
 	auto params = CmdParams{};
 	auto const args = std::array{
-		Arg{params.verbose, "v,verbose"},
-		Arg{params.number, required_v, "number"},
+		named_flag(params.verbose, "v,verbose"),
+		positional_required(params.number, "number"),
 	};
-	auto const cmd_arg = Arg{args, "cmd"};
+	auto const cmd_arg = command(args, "cmd");
 	auto param = cmd_arg.get_param();
 	ASSERT(std::holds_alternative<ParamCommand>(param));
 	auto const& cmd = std::get<ParamCommand>(param);
