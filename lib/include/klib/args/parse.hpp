@@ -4,6 +4,8 @@
 #include <klib/args/parse_result.hpp>
 
 namespace klib::args {
+[[nodiscard]] auto parse(std::span<Arg const> args, std::string_view input, IPrinter* printer = nullptr) -> ParseResult;
+
 [[nodiscard]] auto parse(ParseInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult;
 
 [[nodiscard]] inline auto parse(std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult { return parse({}, args, argc, argv); }
