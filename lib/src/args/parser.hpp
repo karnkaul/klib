@@ -1,9 +1,17 @@
 #pragma once
 #include <args/scanner.hpp>
-#include <klib/args/parse_info.hpp>
+#include <klib/args/app_info.hpp>
 #include <klib/args/parse_result.hpp>
+#include <klib/args/printer.hpp>
 
 namespace klib::args {
+struct ParseInfo {
+	std::string_view help_text{};
+	std::string_view version{};
+	std::string_view epilogue{};
+	IPrinter* printer{};
+};
+
 class Parser {
   public:
 	using Result = ParseResult;
