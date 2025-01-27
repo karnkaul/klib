@@ -388,78 +388,80 @@ struct ErrorPrinter {
 	auto operator=(ErrorPrinter const&) = delete;
 	auto operator=(ErrorPrinter&&) = delete;
 
-	explicit ErrorPrinter(std::string_view exe_name, std::string_view cmd_id = {}) : exe_name(exe_name), cmd_name(cmd_id) {
+	explicit ErrorPrinter(IPrinter& printer, std::string_view exe_name, std::string_view cmd_id = {}) : printer(printer), exe_name(exe_name), cmd_name(cmd_id) {
 		str.reserve(400);
 		append_error_prefix();
 	}
 
 	~ErrorPrinter() {
 		if (helpline) { append_helpline(); }
-		std::print(stderr, "{}", str);
+		printer.printerr(str);
 	}
 
 	[[nodiscard]] auto invalid_value(std::string_view const input, std::string_view const value) -> ParseError {
 		helpline = false;
-		std::format_to(std::back_inserter(str), "invalid {}: '{}'\n", input, value);
+		std::format_to(std::back_inserter(str), "invalid {}: '{}'", input, value);
 		return ParseError::InvalidArgument;
 	}
 
 	[[nodiscard]] auto invalid_option(char const letter) -> ParseError {
-		std::format_to(std::back_inserter(str), "invalid option -- '{}'\n", letter);
+		std::format_to(std::back_inserter(str), "invalid option -- '{}'", letter);
 		return ParseError::InvalidOption;
 	}
 
 	[[nodiscard]] auto unrecognized_option(std::string_view const input) -> ParseError {
-		std::format_to(std::back_inserter(str), "unrecognized option '--{}'\n", input);
+		std::format_to(std::back_inserter(str), "unrecognized option '--{}'", input);
 		return ParseError::InvalidOption;
 	}
 
 	[[nodiscard]] auto unrecognized_command(std::string_view const input) -> ParseError {
-		std::format_to(std::back_inserter(str), "unrecognized command '{}'\n", input);
+		std::format_to(std::back_inserter(str), "unrecognized command '{}'", input);
 		return ParseError::InvalidCommand;
 	}
 
 	[[nodiscard]] auto extraneous_argument(std::string_view const input) -> ParseError {
-		std::format_to(std::back_inserter(str), "extraneous argument '{}'\n", input);
+		std::format_to(std::back_inserter(str), "extraneous argument '{}'", input);
 		return ParseError::InvalidArgument;
 	}
 
 	[[nodiscard]] auto option_requires_argument(std::string_view const input) -> ParseError {
 		if (input.size() == 1) {
-			std::format_to(std::back_inserter(str), "option requires an argument -- '{}'\n", input);
+			std::format_to(std::back_inserter(str), "option requires an argument -- '{}'", input);
 		} else {
-			std::format_to(std::back_inserter(str), "option '{}' requires an argument\n", input);
+			std::format_to(std::back_inserter(str), "option '{}' requires an argument", input);
 		}
 		return ParseError::MissingArgument;
 	}
 
 	[[nodiscard]] auto option_is_flag(std::string_view const input) -> ParseError {
 		if (input.size() == 1) {
-			std::format_to(std::back_inserter(str), "option does not take an argument -- '{}'\n", input);
+			std::format_to(std::back_inserter(str), "option does not take an argument -- '{}'", input);
 		} else {
-			std::format_to(std::back_inserter(str), "option '{}' does not take an argument\n", input);
+			std::format_to(std::back_inserter(str), "option '{}' does not take an argument", input);
 		}
 		return ParseError::InvalidArgument;
 	}
 
 	[[nodiscard]] auto missing_argument(std::string_view name) -> ParseError {
-		std::format_to(std::back_inserter(str), "missing {}\n", name);
+		std::format_to(std::back_inserter(str), "missing {}", name);
 		return ParseError::MissingArgument;
 	}
 
 	void append_error_prefix() {
+		if (exe_name.empty() && cmd_name.empty()) { return; }
 		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
 		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
-		if (!exe_name.empty() || !cmd_name.empty()) { str += ": "; }
+		str += ": ";
 	}
 
 	void append_helpline() {
-		str += "Try '";
+		str += "\nTry '";
 		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
 		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
-		str += "--help' for more information.\n";
+		str += "--help' for more information.";
 	}
 
+	IPrinter& printer;
 	std::string_view exe_name{};
 	std::string_view cmd_name{};
 	bool helpline{true};
@@ -586,10 +588,10 @@ void print_help(ParseInfo const& info, std::string_view const exe, std::string_v
 	if (!info.epilogue.empty()) { out << "\n" << info.epilogue << "\n"; }
 	out << std::right;
 
-	std::println("{}", out.str());
+	info.printer->print(out.str());
 }
 
-void print_usage(std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
+void print_usage(ParseInfo const& info, std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
 	auto out = std::ostringstream{};
 	append_exe_cmd(out, exe, cmd);
 	auto has_commands = false;
@@ -598,9 +600,18 @@ void print_usage(std::string_view const exe, std::string_view const cmd, std::sp
 
 	if (has_commands) { out << "<COMMAND> [COMMAND_ARGS...] "; }
 
-	std::println("{}", out.str());
+	info.printer->print(out.str());
 }
 } // namespace
+
+void Parser::Printer::print(std::string_view const text) { std::println("{}", text); }
+
+void Parser::Printer::printerr(std::string_view const text) { std::println(stderr, "{}", text); }
+
+Parser::Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
+	: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {
+	if (m_info.printer == nullptr) { m_info.printer = &s_printer; }
+}
 
 auto Parser::parse(std::span<Arg const> args) -> ParseResult {
 	m_args = args;
@@ -625,7 +636,7 @@ auto Parser::parse(std::span<Arg const> args) -> ParseResult {
 auto Parser::select_command() -> ParseResult {
 	auto const name = m_scanner.get_value();
 	auto const* cmd = find_command(name);
-	if (cmd == nullptr) { return ErrorPrinter{m_exe_name}.unrecognized_command(name); }
+	if (cmd == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name}.unrecognized_command(name); }
 
 	m_args = {cmd->arg_ptr, cmd->arg_count};
 	m_cursor = Cursor{.cmd = cmd};
@@ -661,9 +672,9 @@ auto Parser::parse_letters() -> ParseResult {
 	auto is_last = false;
 	while (m_scanner.next_letter(letter, is_last)) {
 		auto const* option = find_option(letter);
-		if (option == nullptr) { return ErrorPrinter{m_exe_name, get_cmd_name()}.invalid_option(letter); }
+		if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_option(letter); }
 		if (!is_last) {
-			if (!option->is_flag) { return ErrorPrinter{m_exe_name, get_cmd_name()}.option_requires_argument({&letter, 1}); }
+			if (!option->is_flag) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_requires_argument({&letter, 1}); }
 			[[maybe_unused]] auto const unused = option->assign({});
 		} else {
 			return parse_last_option(*option, {&letter, 1});
@@ -677,24 +688,24 @@ auto Parser::parse_word() -> ParseResult {
 	auto const word = m_scanner.get_key();
 	if (try_builtin(word)) { return ExecutedBuiltin{}; }
 	auto const* option = find_option(word);
-	if (option == nullptr) { return ErrorPrinter{m_exe_name, get_cmd_name()}.unrecognized_option(word); }
+	if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.unrecognized_option(word); }
 	return parse_last_option(*option, word);
 }
 
 auto Parser::parse_last_option(ParamOption const& option, std::string_view input) -> ParseResult {
 	if (option.is_flag) {
-		if (!m_scanner.get_value().empty()) { return ErrorPrinter{m_exe_name, get_cmd_name()}.option_is_flag(input); }
+		if (!m_scanner.get_value().empty()) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_is_flag(input); }
 		[[maybe_unused]] auto const unused = option.assign({});
 		return {};
 	}
 
 	auto value = m_scanner.get_value();
 	if (value.empty()) {
-		if (m_scanner.peek() != TokenType::Argument) { return ErrorPrinter{m_exe_name, get_cmd_name()}.option_requires_argument(input); }
+		if (m_scanner.peek() != TokenType::Argument) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_requires_argument(input); }
 		m_scanner.next();
 		value = m_scanner.get_value();
 	}
-	if (!option.assign(value)) { return ErrorPrinter{m_exe_name, get_cmd_name()}.invalid_value(input, value); }
+	if (!option.assign(value)) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(input, value); }
 
 	return {};
 }
@@ -706,8 +717,10 @@ auto Parser::parse_argument() -> ParseResult {
 
 auto Parser::parse_positional() -> ParseResult {
 	auto const* pos = next_positional();
-	if (pos == nullptr) { return ErrorPrinter{m_exe_name, get_cmd_name()}.extraneous_argument(m_scanner.get_value()); }
-	if (!pos->assign(m_scanner.get_value())) { return ErrorPrinter{m_exe_name, get_cmd_name()}.invalid_value(pos->name, m_scanner.get_value()); }
+	if (pos == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.extraneous_argument(m_scanner.get_value()); }
+	if (!pos->assign(m_scanner.get_value())) {
+		return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(pos->name, m_scanner.get_value());
+	}
 	return {};
 }
 
@@ -725,7 +738,7 @@ auto Parser::try_builtin(std::string_view const word) const -> bool {
 	}
 
 	if (word == "usage") {
-		print_usage(m_exe_name, get_cmd_name(), m_args);
+		print_usage(m_info, m_exe_name, get_cmd_name(), m_args);
 		return true;
 	}
 
@@ -770,10 +783,10 @@ auto Parser::next_positional() -> ParamPositional const* {
 }
 
 auto Parser::check_required() -> ParseResult {
-	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{m_exe_name}.missing_argument("command"); }
+	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command"); }
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
-		if (p->is_required()) { return ErrorPrinter{m_exe_name, get_cmd_name()}.missing_argument(p->name); }
+		if (p->is_required()) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.missing_argument(p->name); }
 		if (p->is_list) { return {}; }
 	}
 
@@ -781,13 +794,13 @@ auto Parser::check_required() -> ParseResult {
 }
 } // namespace args
 
-auto args::parse(std::span<Arg const> args, std::string_view const input) -> ParseResult {
+auto args::parse(std::span<Arg const> args, std::string_view const input, IPrinter* printer) -> ParseResult {
 	auto cli_args = std::vector<std::string>{};
 	for (auto const arg : std::views::split(input, std::string_view{" "})) { cli_args.emplace_back(std::string_view{arg}); }
 	auto cli_args_view = std::vector<char const*>{};
 	cli_args_view.reserve(cli_args.size());
 	for (auto const& arg : cli_args) { cli_args_view.push_back(arg.c_str()); }
-	auto parser = Parser{cli_args_view};
+	auto parser = Parser{cli_args_view, printer};
 	return parser.parse(args);
 }
 
