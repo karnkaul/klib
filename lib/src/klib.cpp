@@ -450,16 +450,24 @@ struct ErrorPrinter {
 
 	void append_error_prefix() {
 		if (exe_name.empty() && cmd_name.empty()) { return; }
-		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
-		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
+		append_context();
 		str += ": ";
 	}
 
 	void append_helpline() {
 		str += "\nTry '";
-		if (!exe_name.empty()) { std::format_to(std::back_inserter(str), "{} ", exe_name); }
-		if (!cmd_name.empty()) { std::format_to(std::back_inserter(str), "{} ", cmd_name); }
+		append_context();
 		str += "--help' for more information.";
+	}
+
+	void append_if_not_empty(std::string_view const text) {
+		if (text.empty()) { return; }
+		std::format_to(std::back_inserter(str), "{} ", str);
+	}
+
+	void append_context() {
+		append_if_not_empty(exe_name);
+		append_if_not_empty(cmd_name);
 	}
 
 	IPrinter& printer;
@@ -496,9 +504,14 @@ struct PrintParam {
 	}
 };
 
-auto append_exe_cmd(std::ostream& out, std::string_view const exe, std::string_view const cmd) {
-	if (!exe.empty()) { out << exe << " "; }
-	if (!cmd.empty()) { out << cmd << " "; }
+struct Context {
+	std::string_view exe_name{};
+	std::string_view cmd_name{};
+};
+
+auto append_context(std::ostream& out, Context const& context) {
+	if (!context.exe_name.empty()) { out << context.exe_name << " "; }
+	if (!context.cmd_name.empty()) { out << context.cmd_name << " "; }
 }
 
 void append_positionals(std::ostream& out, std::span<Arg const> args) {
@@ -544,8 +557,7 @@ void append_command_list(std::ostream& out, std::size_t const width, std::span<A
 	}
 }
 
-void print_help(ParseInfo const& info, std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
-	auto out = std::ostringstream{};
+void append_help(std::ostream& out, ParseInfo const& info, Context const& context, std::span<Arg const> args) {
 	if (!info.help_text.empty()) { out << info.help_text << "\n"; }
 
 	auto const has_version = !info.version.empty();
@@ -567,7 +579,7 @@ void print_help(ParseInfo const& info, std::string_view const exe, std::string_v
 	auto const has_commands = commands_width > 0;
 
 	out << "Usage:\n  ";
-	append_exe_cmd(out, exe, cmd);
+	append_context(out, context);
 
 	if (has_options) { out << "[OPTION...] "; }
 	if (has_commands) {
@@ -576,7 +588,7 @@ void print_help(ParseInfo const& info, std::string_view const exe, std::string_v
 		append_positionals(out, args);
 	}
 	out << "\n  ";
-	append_exe_cmd(out, exe, cmd);
+	append_context(out, context);
 	if (has_commands) { out << "[COMMAND] "; }
 	out << "<--help|--usage";
 	if (has_version) { out << "|--version"; }
@@ -588,20 +600,15 @@ void print_help(ParseInfo const& info, std::string_view const exe, std::string_v
 
 	if (!info.epilogue.empty()) { out << "\n" << info.epilogue << "\n"; }
 	out << std::right;
-
-	info.printer->print(out.str());
 }
 
-void print_usage(ParseInfo const& info, std::string_view const exe, std::string_view const cmd, std::span<Arg const> args) {
-	auto out = std::ostringstream{};
-	append_exe_cmd(out, exe, cmd);
+void append_usage(std::ostream& out, Context const& context, std::span<Arg const> args) {
+	append_context(out, context);
 	auto has_commands = false;
-	auto const print_param = PrintParam{out, &has_commands};
+	auto const print_param = PrintParam{.out = out, .has_commands = &has_commands};
 	for (auto const& arg : args) { std::visit(print_param, arg.get_param()); }
 
 	if (has_commands) { out << "<COMMAND> [COMMAND_ARGS...] "; }
-
-	info.printer->print(out.str());
 }
 } // namespace
 
@@ -676,9 +683,9 @@ auto Parser::parse_letters() -> ParseResult {
 	auto is_last = false;
 	while (m_scanner.next_letter(letter, is_last)) {
 		auto const* option = find_option(letter);
-		if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_option(letter); }
+		if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.invalid_option(letter); }
 		if (!is_last) {
-			if (!option->is_flag) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_requires_argument({&letter, 1}); }
+			if (!option->is_flag) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.option_requires_argument({&letter, 1}); }
 			[[maybe_unused]] auto const unused = Assigner{}(*option);
 		} else {
 			return parse_last_option(*option, {&letter, 1});
@@ -692,24 +699,24 @@ auto Parser::parse_word() -> ParseResult {
 	auto const word = m_scanner.get_key();
 	if (try_builtin(word)) { return ExecutedBuiltin{}; }
 	auto const* option = find_option(word);
-	if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.unrecognized_option(word); }
+	if (option == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.unrecognized_option(word); }
 	return parse_last_option(*option, word);
 }
 
 auto Parser::parse_last_option(ParamOption const& option, std::string_view input) -> ParseResult {
 	if (option.is_flag) {
-		if (!m_scanner.get_value().empty()) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_is_flag(input); }
+		if (!m_scanner.get_value().empty()) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.option_is_flag(input); }
 		[[maybe_unused]] auto const unused = Assigner{}(option);
 		return {};
 	}
 
 	auto value = m_scanner.get_value();
 	if (value.empty()) {
-		if (m_scanner.peek() != TokenType::Argument) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.option_requires_argument(input); }
+		if (m_scanner.peek() != TokenType::Argument) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.option_requires_argument(input); }
 		m_scanner.next();
 		value = m_scanner.get_value();
 	}
-	if (!Assigner{value}(option)) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(input, value); }
+	if (!Assigner{value}(option)) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.invalid_value(input, value); }
 
 	return {};
 }
@@ -721,9 +728,9 @@ auto Parser::parse_argument() -> ParseResult {
 
 auto Parser::parse_positional() -> ParseResult {
 	auto const* pos = next_positional();
-	if (pos == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.extraneous_argument(m_scanner.get_value()); }
+	if (pos == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.extraneous_argument(m_scanner.get_value()); }
 	if (!Assigner{m_scanner.get_value()}(*pos)) {
-		return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.invalid_value(pos->name, m_scanner.get_value());
+		return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.invalid_value(pos->name, m_scanner.get_value());
 	}
 	return {};
 }
@@ -735,14 +742,12 @@ auto Parser::try_builtin(std::string_view const word) const -> bool {
 	}
 
 	if (word == "help") {
-		auto info = m_info;
-		info.help_text = get_help_text();
-		print_help(info, m_exe_name, get_cmd_name(), m_args);
+		m_info.printer->print(help_string());
 		return true;
 	}
 
 	if (word == "usage") {
-		print_usage(m_info, m_exe_name, get_cmd_name(), m_args);
+		m_info.printer->print(usage_string());
 		return true;
 	}
 
@@ -786,15 +791,56 @@ auto Parser::next_positional() -> ParamPositional const* {
 	return nullptr;
 }
 
+auto Parser::help_string() const -> std::string {
+	if (m_cursor.cmd != nullptr) { return CmdHelpString{.exe_name = m_exe_name, .cmd_name = m_cursor.cmd->name, .help_text = m_cursor.cmd->help_text}(m_args); }
+	return HelpString{.exe_name = m_exe_name, .help_text = m_info.help_text, .version = m_info.version, .epilogue = m_info.epilogue}(m_args);
+}
+
+auto Parser::usage_string() const -> std::string {
+	if (m_cursor.cmd != nullptr) { return CmdUsageString{.exe_name = m_exe_name, .cmd_name = m_cursor.cmd->name}(m_args); }
+	return UsageString{.exe_name = m_exe_name}(m_args);
+}
+
 auto Parser::check_required() -> ParseResult {
 	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command"); }
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
-		if (p->is_required()) { return ErrorPrinter{*m_info.printer, m_exe_name, get_cmd_name()}.missing_argument(p->name); }
+		if (p->is_required()) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.missing_argument(p->name); }
 		if (p->is_list) { return {}; }
 	}
 
 	return {};
+}
+
+auto HelpString::operator()(std::span<Arg const> args) const -> std::string {
+	auto out = std::ostringstream{};
+	auto const info = ParseInfo{
+		.help_text = help_text,
+		.version = version,
+		.epilogue = epilogue,
+	};
+	auto const context = Context{.exe_name = exe_name};
+	append_help(out, info, context, args);
+	return out.str();
+}
+
+auto CmdHelpString::operator()(std::span<Arg const> args) const -> std::string {
+	auto out = std::ostringstream{};
+	auto const info = ParseInfo{
+		.help_text = help_text,
+	};
+	auto const context = Context{.exe_name = exe_name, .cmd_name = cmd_name};
+	append_help(out, info, context, args);
+	return out.str();
+}
+
+auto UsageString::operator()(std::span<Arg const> args) const -> std::string { return CmdUsageString{.exe_name = exe_name}(args); }
+
+auto CmdUsageString::operator()(std::span<Arg const> args) const -> std::string {
+	auto out = std::ostringstream{};
+	auto const context = Context{.exe_name = exe_name, .cmd_name = cmd_name};
+	append_usage(out, context, args);
+	return out.str();
 }
 } // namespace args
 

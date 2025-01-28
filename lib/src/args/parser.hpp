@@ -43,8 +43,9 @@ class Parser {
 
 	[[nodiscard]] auto check_required() -> Result;
 
-	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
-	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
+	[[nodiscard]] auto cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
+	[[nodiscard]] auto help_string() const -> std::string;
+	[[nodiscard]] auto usage_string() const -> std::string;
 
 	ParseInfo m_info{};
 	std::string_view m_exe_name{};
