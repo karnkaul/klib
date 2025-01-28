@@ -462,7 +462,7 @@ struct ErrorPrinter {
 
 	void append_if_not_empty(std::string_view const text) {
 		if (text.empty()) { return; }
-		std::format_to(std::back_inserter(str), "{} ", str);
+		std::format_to(std::back_inserter(str), "{} ", text);
 	}
 
 	void append_context() {
