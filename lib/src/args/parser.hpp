@@ -8,8 +8,9 @@ class Parser {
   public:
 	using Result = ParseResult;
 
-	explicit Parser(ParseInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
-		: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {}
+	explicit Parser(ParseInfo const& info, std::string_view exe_name, std::span<char const* const> cli_args);
+
+	explicit Parser(std::span<char const* const> cli_args, IPrinter* printer) : Parser(ParseInfo{.printer = printer}, {}, cli_args) {}
 
 	[[nodiscard]] auto parse(std::span<Arg const> args) -> Result;
 
@@ -17,6 +18,11 @@ class Parser {
 	struct Cursor {
 		ParamCommand const* cmd{};
 		std::size_t next_pos{};
+	};
+
+	struct Printer : IPrinter {
+		void println(std::string_view text) final;
+		void printerr(std::string_view text) final;
 	};
 
 	auto select_command() -> Result;
@@ -37,11 +43,12 @@ class Parser {
 
 	[[nodiscard]] auto check_required() -> Result;
 
-	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
-	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
+	[[nodiscard]] auto cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
+	[[nodiscard]] auto help_string() const -> std::string;
+	[[nodiscard]] auto usage_string() const -> std::string;
 
-	ParseInfo const& m_info;
-	std::string_view m_exe_name;
+	ParseInfo m_info{};
+	std::string_view m_exe_name{};
 
 	Scanner m_scanner;
 	std::span<Arg const> m_args{};

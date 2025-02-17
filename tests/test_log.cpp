@@ -11,8 +11,23 @@ struct Logger {
 	std::string_view tag{"klib::test"};
 
 	template <typename... Args>
+	void error(log::Fmt<Args...> fmt, Args&&... args) const {
+		log::error(tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void warn(log::Fmt<Args...> fmt, Args&&... args) const {
+		log::warn(tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
 	void info(log::Fmt<Args...> fmt, Args&&... args) const {
 		log::info(tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void debug(log::Fmt<Args...> fmt, Args&&... args) const {
+		log::debug(tag, fmt, std::forward<Args>(args)...);
 	}
 };
 
@@ -25,6 +40,10 @@ TEST(log) {
 		logger.info("expect in log file");
 	}
 	logger.info("unexpected in log file");
+
+	logger.error("test error log");
+	logger.warn("test warn log");
+	logger.debug("test debug log");
 
 	{
 		auto file = std::ifstream{filename_v.c_str()};

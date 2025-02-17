@@ -50,6 +50,7 @@ void debug(std::string_view tag, Fmt<Args...> const& fmt, Args&&... args) {
 	print(Level::Debug, tag, fmt, std::forward<Args>(args)...);
 }
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum struct ThreadId : std::int64_t { Main = 0 };
 
 struct Input {
@@ -62,6 +63,8 @@ struct Input {
 
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
+
+void set_use_escape_colors(bool colorify);
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 
