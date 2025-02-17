@@ -951,6 +951,7 @@ struct Storage {
 	}
 
 	std::atomic<Level> max_level{Level::Debug};
+	std::atomic<bool> colorify{true};
 
   private:
 	mutable std::mutex m_mutex{};
@@ -972,6 +973,8 @@ auto File::is_attached() const -> bool { return m_path == g_storage.get_file_pat
 
 void log::set_max_level(Level level) { g_storage.max_level = level; }
 auto log::get_max_level() -> Level { return g_storage.max_level; }
+
+void log::set_use_escape_colors(bool const colorify) { g_storage.colorify = colorify; }
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
@@ -1005,7 +1008,12 @@ void log::print(Input const& input) {
 	auto const text = format(input);
 
 	auto* out = input.level == Level::Error ? stderr : stdout;
-	std::print(out, "{}", text);
+	if (g_storage.colorify) {
+		static constexpr auto escape_color_v = EnumArray<Level, std::string_view>{"91", "93", "", "90"};
+		std::print(out, "\x1b[{}m{}\x1b[m", escape_color_v[input.level], text);
+	} else {
+		std::print(out, "{}", text);
+	}
 	std::fflush(out);
 
 #if defined(_WIN32)
