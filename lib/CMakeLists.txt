@@ -11,11 +11,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 set(stacktrace_lib "")
 
 if(CMAKE_HOST_UNIX)
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
-    set(stacktrace_lib "stdc++exp")
-  else()
-    set(stacktrace_lib "stdc++_libbacktrace")
-  endif()
+  set(stacktrace_lib "stdc++exp")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
