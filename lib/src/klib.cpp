@@ -479,6 +479,7 @@ struct ErrorPrinter {
 
 struct PrintParam {
 	std::ostream& out;
+	bool omit_defaults{};
 	bool* has_commands{};
 
 	void operator()(ParamOption const& o) const {
@@ -495,7 +496,7 @@ struct PrintParam {
 	void operator()(ParamPositional const& p) const {
 		std::string_view const wrap = p.is_required() ? "<>" : "[]";
 		out << wrap[0] << p.name;
-		if (!p.is_list && !p.is_required()) { out << "(=" << p.to_string() << ")"; }
+		if (!omit_defaults && !p.is_list && !p.is_required()) { out << "(=" << p.to_string() << ")"; }
 		out << wrap[1] << ' ';
 	}
 
@@ -514,9 +515,10 @@ auto append_context(std::ostream& out, Context const& context) {
 	if (!context.cmd_name.empty()) { out << context.cmd_name << " "; }
 }
 
-void append_positionals(std::ostream& out, std::span<Arg const> args) {
+void append_positionals(std::ostream& out, std::span<Arg const> args, ParseFlag const flags) {
+	auto const omit_defaults = (flags & ParseFlag::OmitDefaultValues) == ParseFlag::OmitDefaultValues;
 	for (auto const& arg : args) {
-		if (auto const* pos = std::get_if<ParamPositional>(&arg.get_param())) { PrintParam{out}(*pos); }
+		if (auto const* pos = std::get_if<ParamPositional>(&arg.get_param())) { PrintParam{.out = out, .omit_defaults = omit_defaults}(*pos); }
 	}
 }
 
@@ -585,7 +587,7 @@ void append_help(std::ostream& out, ParseInfo const& info, Context const& contex
 	if (has_commands) {
 		out << "<COMMAND> [COMMAND_ARGS...] ";
 	} else if (has_positionals) {
-		append_positionals(out, args);
+		append_positionals(out, args, info.flags);
 	}
 	out << "\n  ";
 	append_context(out, context);
@@ -623,6 +625,9 @@ Parser::Parser(ParseInfo const& info, std::string_view const exe_name, std::span
 		m_info.printer = &s_printer;
 	}
 }
+
+Parser::Parser(ParseStringInfo const& info, std::span<char const* const> cli_args)
+	: Parser(ParseInfo{.printer = info.printer, .flags = info.flags}, {}, cli_args) {}
 
 auto Parser::parse(std::span<Arg const> args) -> ParseResult {
 	m_args = args;
@@ -792,8 +797,21 @@ auto Parser::next_positional() -> ParamPositional const* {
 }
 
 auto Parser::help_string() const -> std::string {
-	if (m_cursor.cmd != nullptr) { return CmdHelpString{.exe_name = m_exe_name, .cmd_name = m_cursor.cmd->name, .help_text = m_cursor.cmd->help_text}(m_args); }
-	return HelpString{.exe_name = m_exe_name, .help_text = m_info.help_text, .version = m_info.version, .epilogue = m_info.epilogue}(m_args);
+	if (m_cursor.cmd != nullptr) {
+		return CmdHelpString{
+			.exe_name = m_exe_name,
+			.cmd_name = m_cursor.cmd->name,
+			.help_text = m_cursor.cmd->help_text,
+			.flags = m_info.flags,
+		}(m_args);
+	}
+	return HelpString{
+		.exe_name = m_exe_name,
+		.help_text = m_info.help_text,
+		.version = m_info.version,
+		.epilogue = m_info.epilogue,
+		.flags = m_info.flags,
+	}(m_args);
 }
 
 auto Parser::usage_string() const -> std::string {
@@ -818,6 +836,7 @@ auto HelpString::operator()(std::span<Arg const> args) const -> std::string {
 		.help_text = help_text,
 		.version = version,
 		.epilogue = epilogue,
+		.flags = flags,
 	};
 	auto const context = Context{.exe_name = exe_name};
 	append_help(out, info, context, args);
@@ -828,6 +847,7 @@ auto CmdHelpString::operator()(std::span<Arg const> args) const -> std::string {
 	auto out = std::ostringstream{};
 	auto const info = ParseInfo{
 		.help_text = help_text,
+		.flags = flags,
 	};
 	auto const context = Context{.exe_name = exe_name, .cmd_name = cmd_name};
 	append_help(out, info, context, args);
@@ -844,13 +864,13 @@ auto CmdUsageString::operator()(std::span<Arg const> args) const -> std::string 
 }
 } // namespace args
 
-auto args::parse_string(std::span<Arg const> args, std::string_view const input, IPrinter* printer) -> ParseResult {
+auto args::parse_string(ParseStringInfo const& info, std::span<Arg const> args, std::string_view const input) -> ParseResult {
 	auto cli_args_storage = std::vector<std::string>{};
 	for (auto const arg : std::views::split(input, std::string_view{" "})) { cli_args_storage.emplace_back(std::string_view{arg}); }
 	auto cli_args = std::vector<char const*>{};
 	cli_args.reserve(cli_args_storage.size());
 	for (auto const& arg : cli_args_storage) { cli_args.push_back(arg.c_str()); }
-	auto parser = Parser{cli_args, printer};
+	auto parser = Parser{info, cli_args};
 	return parser.parse(args);
 }
 
