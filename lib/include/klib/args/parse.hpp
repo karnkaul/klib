@@ -32,6 +32,7 @@ struct CmdHelpString {
 
 struct UsageString {
 	std::string_view exe_name{};
+	ParseFlag flags{};
 
 	[[nodiscard]] auto operator()(std::span<Arg const> args) const -> std::string;
 };
@@ -39,6 +40,7 @@ struct UsageString {
 struct CmdUsageString {
 	std::string_view exe_name{};
 	std::string_view cmd_name{};
+	ParseFlag flags{};
 
 	[[nodiscard]] auto operator()(std::span<Arg const> args) const -> std::string;
 };

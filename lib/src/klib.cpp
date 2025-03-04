@@ -604,10 +604,11 @@ void append_help(std::ostream& out, ParseInfo const& info, Context const& contex
 	out << std::right;
 }
 
-void append_usage(std::ostream& out, Context const& context, std::span<Arg const> args) {
+void append_usage(std::ostream& out, ParseFlag const flags, Context const& context, std::span<Arg const> args) {
 	append_context(out, context);
 	auto has_commands = false;
-	auto const print_param = PrintParam{.out = out, .has_commands = &has_commands};
+	auto const omit_defaults = (flags & ParseFlag::OmitDefaultValues) == ParseFlag::OmitDefaultValues;
+	auto const print_param = PrintParam{.out = out, .omit_defaults = omit_defaults, .has_commands = &has_commands};
 	for (auto const& arg : args) { std::visit(print_param, arg.get_param()); }
 
 	if (has_commands) { out << "<COMMAND> [COMMAND_ARGS...] "; }
@@ -815,8 +816,17 @@ auto Parser::help_string() const -> std::string {
 }
 
 auto Parser::usage_string() const -> std::string {
-	if (m_cursor.cmd != nullptr) { return CmdUsageString{.exe_name = m_exe_name, .cmd_name = m_cursor.cmd->name}(m_args); }
-	return UsageString{.exe_name = m_exe_name}(m_args);
+	if (m_cursor.cmd != nullptr) {
+		return CmdUsageString{
+			.exe_name = m_exe_name,
+			.cmd_name = m_cursor.cmd->name,
+			.flags = m_info.flags,
+		}(m_args);
+	}
+	return UsageString{
+		.exe_name = m_exe_name,
+		.flags = m_info.flags,
+	}(m_args);
 }
 
 auto Parser::check_required() -> ParseResult {
@@ -859,7 +869,7 @@ auto UsageString::operator()(std::span<Arg const> args) const -> std::string { r
 auto CmdUsageString::operator()(std::span<Arg const> args) const -> std::string {
 	auto out = std::ostringstream{};
 	auto const context = Context{.exe_name = exe_name, .cmd_name = cmd_name};
-	append_usage(out, context, args);
+	append_usage(out, flags, context, args);
 	return out.str();
 }
 } // namespace args
