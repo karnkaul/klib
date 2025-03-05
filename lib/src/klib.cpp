@@ -1220,3 +1220,78 @@ auto TextTable::Builder::build() const -> TextTable {
 	return ret;
 }
 } // namespace klib
+
+// vigenere
+
+#include <klib/vigenere_cipher.hpp>
+#include <functional>
+
+namespace klib {
+namespace {
+class VigenereCipher {
+  public:
+	explicit constexpr VigenereCipher(std::string_view const key) : m_key(key) { KLIB_ASSERT(!m_key.empty()); }
+
+	constexpr void encrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &shift); }
+	constexpr void decrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &unshift); }
+
+  private:
+	static constexpr auto min_shift_v = 32;
+	static constexpr auto max_shift_v = 126;
+	static constexpr auto shift_mod_v = max_shift_v - min_shift_v + 1;
+
+	[[nodiscard]] static constexpr auto in_range(char const ch) -> bool { return int(ch) >= min_shift_v && int(ch) <= max_shift_v; }
+
+	[[nodiscard]] static constexpr auto shift(char const ch, int const distance) -> char {
+		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		auto const ret = int(ch) - min_shift_v + distance;
+		KLIB_ASSERT(ret >= 0);
+		return char((ret % shift_mod_v) + min_shift_v);
+	}
+
+	[[nodiscard]] static constexpr auto unshift(char const ch, int const distance) -> char {
+		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		auto const ret = int(ch) + shift_mod_v - min_shift_v - distance;
+		KLIB_ASSERT(ret >= 0);
+		return char((ret % shift_mod_v) + min_shift_v);
+	}
+
+	template <typename F>
+	constexpr void process(std::string_view const src, std::span<char> dst, F func) const {
+		KLIB_ASSERT(src.size() <= dst.size());
+		if (src.empty()) { return; }
+		for (std::size_t i = 0; i < src.size(); ++i) {
+			auto const ch = src[i];
+			if (in_range(ch)) {
+				auto const j = i % m_key.size();
+				auto const distance = int(m_key[j]) - min_shift_v;
+				KLIB_ASSERT(distance >= 0);
+				dst[i] = func(src[i], distance);
+			} else {
+				dst[i] = src[i];
+			}
+		}
+	}
+
+	std::string_view m_key;
+};
+
+template <typename F>
+auto apply_vigenere(std::string_view const key, std::string_view const input, F func) -> std::string {
+	auto ret = std::string{};
+	ret.resize(input.size());
+	auto const span = std::span{ret.data(), ret.size()};
+	auto cipher = klib::VigenereCipher{key};
+	std::invoke(func, &cipher, input, span);
+	return ret;
+}
+} // namespace
+} // namespace klib
+
+auto klib::vigenere_encrypt(std::string_view const key, std::string_view const input) -> std::string {
+	return apply_vigenere(key, input, &VigenereCipher::encrypt);
+}
+
+auto klib::vigenere_decrypt(std::string_view const key, std::string_view const input) -> std::string {
+	return apply_vigenere(key, input, &VigenereCipher::decrypt);
+}
