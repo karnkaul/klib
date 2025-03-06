@@ -17,7 +17,6 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-warnings
   ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
-  ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
   $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
 )
 

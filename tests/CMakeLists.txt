@@ -7,7 +7,6 @@ if(NOT "${sources}" STREQUAL "")
     ${PROJECT_NAME}::${PROJECT_NAME}
     ${PROJECT_NAME}::${PROJECT_NAME}-warnings
     ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
-    ${PROJECT_NAME}::${PROJECT_NAME}-msbuild-mp
   )
   target_include_directories(${PROJECT_NAME}-tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src"
