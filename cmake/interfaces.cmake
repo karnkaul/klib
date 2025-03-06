@@ -19,3 +19,12 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL MSVC)
     $<$<NOT:$<CONFIG:Debug>>:/WX>
   )
 endif()
+
+function(klib_set_mainCRTStartup TARGET)
+  if(WIN32)
+    message(STATUS "adding /ENTRY:mainCRTStartup link option to ${TARGET}")
+    target_link_options(${TARGET} PRIVATE
+      "LINKER:/ENTRY:mainCRTStartup"
+    )
+  endif()
+endfunction()

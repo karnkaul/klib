@@ -1,4 +1,4 @@
-file(GLOB_RECURSE sources LIST_DIRECTORIES false "*.cpp")
+file(GLOB_RECURSE sources LIST_DIRECTORIES false "test_*.cpp")
 
 if(NOT "${sources}" STREQUAL "")
   add_executable(${PROJECT_NAME}-tests)
@@ -15,3 +15,6 @@ if(NOT "${sources}" STREQUAL "")
   target_sources(${PROJECT_NAME}-tests PRIVATE ${sources})
   add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 endif()
+
+add_executable(${PROJECT_NAME}-xplat-main-test WIN32 xplat_main_test.cpp)
+klib_set_mainCRTStartup(${PROJECT_NAME}-xplat-main-test)
