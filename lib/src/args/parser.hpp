@@ -9,8 +9,7 @@ class Parser {
 	using Result = ParseResult;
 
 	explicit Parser(ParseInfo const& info, std::string_view exe_name, std::span<char const* const> cli_args);
-
-	explicit Parser(std::span<char const* const> cli_args, IPrinter* printer) : Parser(ParseInfo{.printer = printer}, {}, cli_args) {}
+	explicit Parser(ParseStringInfo const& info, std::span<char const* const> cli_args);
 
 	[[nodiscard]] auto parse(std::span<Arg const> args) -> Result;
 

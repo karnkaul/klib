@@ -2,7 +2,6 @@
 #include <klib/c_string.hpp>
 #include <klib/constants.hpp>
 #include <klib/enum_array.hpp>
-#include <klib/polymorphic.hpp>
 #include <klib/str_buf.hpp>
 #include <cstdint>
 #include <format>
