@@ -9,12 +9,12 @@ jobs:
         run: scripts/format_code.sh
       - name: check diff
         run: .github/format_check_diff.sh
-  linux-gcc:
+  x64-linux-gcc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: sudo apt install -yqq ninja-build
+        run: uname -m; sudo apt install -yqq ninja-build
       - name: configure
         run: export CXX=g++-14; cmake -S . --preset=default -B build
       - name: build debug
@@ -25,12 +25,12 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
-  linux-clang:
+  x64-linux-clang:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: sudo apt install -yqq ninja-build
+        run: uname -m; sudo apt install -yqq ninja-build
       - name: configure
         run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
@@ -41,7 +41,39 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
-  windows-vs22:
+  arm64-linux-gcc:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: init
+        run: uname -m
+      - name: configure
+        run: export CXX=g++-14; cmake -S . --preset=default -B build
+      - name: build debug
+        run: cmake --build build --config=Debug
+      - name: build release
+        run: cmake --build build --config=Release
+      - name: test debug
+        run: cd build && ctest -V -C Debug
+      - name: test release
+        run: cd build && ctest -V -C Release
+  arm64-linux-clang:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: init
+        run: uname -m
+      - name: configure
+        run: cmake -S . --preset=ninja-clang -B build
+      - name: build debug
+        run: cmake --build build --config=Debug
+      - name: build release
+        run: cmake --build build --config=Release
+      - name: test debug
+        run: cd build && ctest -V -C Debug
+      - name: test release
+        run: cd build && ctest -V -C Release
+  x64-windows-vs22:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +87,7 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
-  windows-clang:
+  x64-windows-clang:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
