@@ -7,34 +7,10 @@
 namespace {
 using namespace klib;
 
-struct Logger {
-	std::string_view tag{"klib::test"};
-
-	template <typename... Args>
-	void error(log::Fmt<Args...> fmt, Args&&... args) const {
-		log::error(tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void warn(log::Fmt<Args...> fmt, Args&&... args) const {
-		log::warn(tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void info(log::Fmt<Args...> fmt, Args&&... args) const {
-		log::info(tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void debug(log::Fmt<Args...> fmt, Args&&... args) const {
-		log::debug(tag, fmt, std::forward<Args>(args)...);
-	}
-};
-
 TEST(log) {
 	static constexpr CString filename_v{"test.log"};
 
-	auto const logger = Logger{};
+	auto const logger = TaggedLogger{"klib::test"};
 	{
 		auto const file = log::File{filename_v.c_str()};
 		logger.info("expect in log file");

@@ -8,7 +8,8 @@
 #include <source_location>
 #include <string>
 
-namespace klib::log {
+namespace klib {
+namespace log {
 enum class Level : std::int8_t { Error, Warn, Info, Debug, COUNT_ };
 inline constexpr auto level_to_char = EnumArray<Level, char>{'E', 'W', 'I', 'D'};
 inline constexpr auto debug_enabled_v = debug_v;
@@ -86,9 +87,37 @@ class File {
   private:
 	std::string m_path;
 };
-} // namespace klib::log
+} // namespace log
 
-namespace klib {
+class TaggedLogger {
+  public:
+	explicit TaggedLogger(std::string_view const tag) : m_tag(tag) {}
+
+	template <typename... Args>
+	void error(log::Fmt<Args...> const& fmt, Args&&... args) const {
+		log::error(m_tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void warn(log::Fmt<Args...> const& fmt, Args&&... args) const {
+		log::warn(m_tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void info(log::Fmt<Args...> const& fmt, Args&&... args) const {
+		log::info(m_tag, fmt, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void debug(log::Fmt<Args...> const& fmt, Args&&... args) const {
+		if constexpr (!log::debug_enabled_v) { return; }
+		log::debug(m_tag, fmt, std::forward<Args>(args)...);
+	}
+
+  private:
+	std::string_view m_tag{};
+};
+
 template <typename... Args>
 void log::print(Level const level, std::string_view const tag, Fmt<Args...> const& fmt, Args&&... args) {
 	if (level > get_max_level()) { return; }
