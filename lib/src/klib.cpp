@@ -958,8 +958,6 @@ struct FileImpl {
 };
 
 struct Storage {
-	using Lock = std::unique_lock<std::mutex>;
-
 	auto attach_file(std::string path) -> bool {
 		auto lock = std::scoped_lock{m_mutex};
 		return m_file.start(std::move(path));
@@ -975,17 +973,27 @@ struct Storage {
 		return m_file.path;
 	}
 
+	void set_colors(std::optional<Colors> const& colors) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_colors = colors;
+	}
+
+	[[nodiscard]] auto get_colors() const -> std::optional<Colors> {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_colors;
+	}
+
 	void print_to_file(CString const line) {
 		auto lock = std::scoped_lock{m_mutex};
 		m_file.print(line);
 	}
 
 	std::atomic<Level> max_level{Level::Debug};
-	std::atomic<bool> colorify{true};
 
   private:
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
+	std::optional<Colors> m_colors{colors_v};
 };
 
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -1004,7 +1012,8 @@ auto File::is_attached() const -> bool { return m_path == g_storage.get_file_pat
 void log::set_max_level(Level level) { g_storage.max_level = level; }
 auto log::get_max_level() -> Level { return g_storage.max_level; }
 
-void log::set_use_escape_colors(bool const colorify) { g_storage.colorify = colorify; }
+void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
+auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
@@ -1038,11 +1047,19 @@ void log::print(Input const& input) {
 	auto const text = format(input);
 
 	auto* out = input.level == Level::Error ? stderr : stdout;
-	if (g_storage.colorify) {
-		static constexpr auto escape_color_v = EnumArray<Level, std::string_view>{"91", "93", "", "90"};
-		std::print(out, "\x1b[{}m{}\x1b[m", escape_color_v[input.level], text);
+	auto const do_print = [&](std::optional<escape::Rgb> const rgb) {
+		if (!rgb) {
+			std::print("{}", text);
+			return;
+		}
+		auto const fg = escape::foreground(*rgb);
+		std::print(out, "{}{}{}", fg.as_view(), text, escape::clear.as_view());
+	};
+
+	if (auto const colors = g_storage.get_colors()) {
+		do_print((*colors)[input.level]);
 	} else {
-		std::print(out, "{}", text);
+		do_print({});
 	}
 	std::fflush(out);
 
@@ -1295,3 +1312,20 @@ auto klib::vigenere_encrypt(std::string_view const key, std::string_view const i
 auto klib::vigenere_decrypt(std::string_view const key, std::string_view const input) -> std::string {
 	return apply_vigenere(key, input, &VigenereCipher::decrypt);
 }
+
+// escape_code
+
+#include <klib/escape_code.hpp>
+
+namespace klib {
+namespace escape {
+namespace {
+[[nodiscard]] auto colorify(Rgb const rgb, int const target) -> FixedString<> {
+	return {"{}{};2;{};{};{}{}", prefix_v, target, rgb[0], rgb[1], rgb[2], suffix_v};
+}
+} // namespace
+} // namespace escape
+
+auto escape::foreground(Rgb const rgb) -> FixedString<> { return colorify(rgb, 38); }
+auto escape::background(Rgb const rgb) -> FixedString<> { return colorify(rgb, 48); }
+} // namespace klib

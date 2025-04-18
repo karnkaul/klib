@@ -2,9 +2,11 @@
 #include <klib/c_string.hpp>
 #include <klib/constants.hpp>
 #include <klib/enum_array.hpp>
+#include <klib/escape_code.hpp>
 #include <klib/str_buf.hpp>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <source_location>
 #include <string>
 
@@ -13,6 +15,14 @@ namespace log {
 enum class Level : std::int8_t { Error, Warn, Info, Debug, COUNT_ };
 inline constexpr auto level_to_char = EnumArray<Level, char>{'E', 'W', 'I', 'D'};
 inline constexpr auto debug_enabled_v = debug_v;
+
+using Colors = EnumArray<Level, std::optional<escape::Rgb>>;
+inline constexpr auto colors_v = Colors{
+	escape::Rgb{241, 76, 76},
+	escape::Rgb{245, 245, 67},
+	escape::Rgb{229, 229, 229},
+	escape::Rgb{170, 170, 170},
+};
 
 template <typename... Args>
 struct BasicFmt : std::basic_format_string<char, Args...> {
@@ -64,7 +74,8 @@ struct Input {
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
-void set_use_escape_colors(bool colorify);
+void set_colors(std::optional<Colors> const& colors);
+[[nodiscard]] auto get_colors() -> std::optional<Colors>;
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 
