@@ -9,10 +9,10 @@ class FixedString {
 	FixedString() = default;
 
 	template <std::convertible_to<std::string_view> T>
-	/*implicit*/ constexpr FixedString(T const& text) : m_size(copy_to(m_buf, std::string_view{text})) {}
+	explicit(false) constexpr FixedString(T const& text) : m_size(copy_to(m_buf, std::string_view{text})) {}
 
 	template <typename... Args>
-	/*implicit*/ FixedString(std::format_string<Args...> fmt, Args&&... args) {
+	explicit(false) FixedString(std::format_string<Args...> fmt, Args&&... args) {
 		auto const [out, _] = std::format_to_n(m_buf.data(), std::iter_difference_t<char*>(MaxLength), fmt, std::forward<Args>(args)...);
 		m_size = std::size_t(out - m_buf.data()); // NOLINT(cppcoreguidelines-prefer-member-initializer)
 	}
