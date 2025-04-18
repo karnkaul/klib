@@ -8,10 +8,10 @@ class CString {
   public:
 	/*implicit*/ constexpr CString(char const* str = "") : m_str(str == nullptr ? "" : str) {}
 
-	[[nodiscard]] constexpr auto c_str() const -> char const* { return m_str; }
-	[[nodiscard]] constexpr auto as_view() const -> std::string_view { return c_str(); }
+	[[nodiscard]] constexpr auto c_str() const -> char const* { return as_view().data(); }
+	[[nodiscard]] constexpr auto as_view() const -> std::string_view { return m_str; }
 
   private:
-	char const* m_str;
+	std::string_view m_str;
 };
 } // namespace klib
