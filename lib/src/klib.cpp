@@ -1053,7 +1053,7 @@ void log::print(Input const& input) {
 			return;
 		}
 		auto const fg = escape::foreground(*rgb);
-		std::print(out, "{}{}{}", fg.as_view(), text, escape::clear.as_view());
+		std::print(out, "{}{}{}", fg, text, escape::clear);
 	};
 
 	if (auto const colors = g_storage.get_colors()) {

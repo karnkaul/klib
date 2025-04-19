@@ -44,6 +44,13 @@ class FixedString {
 		return append(rhs);
 	}
 
+	template <std::size_t N>
+	constexpr auto operator==(FixedString<N> const& rhs) const -> bool {
+		return as_view() == rhs.as_view();
+	}
+
+	constexpr auto operator==(std::string_view const rhs) const -> bool { return as_view() == rhs; }
+
 	constexpr operator std::string_view() const { return as_view(); }
 
   private:
@@ -51,3 +58,11 @@ class FixedString {
 	std::size_t m_size{};
 };
 } // namespace klib
+
+template <std::size_t N>
+struct std::formatter<klib::FixedString<N>> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(klib::FixedString<N> const& str, FormatContext& fc) const {
+		return formatter<string_view>::format(str.as_view(), fc);
+	}
+};
