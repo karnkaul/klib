@@ -11,7 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_DEBUG_POSTFIX "-d")
 
-include(cmake/interfaces.cmake)
+function(klib_set_mainCRTStartup TARGET)
+  if(WIN32)
+    message(STATUS "adding /ENTRY:mainCRTStartup link option to ${TARGET}")
+    target_link_options(${TARGET} PRIVATE
+      "LINKER:/ENTRY:mainCRTStartup"
+    )
+  endif()
+endfunction()
+
 add_subdirectory(lib)
 
 if(KLIB_BUILD_TESTS)
