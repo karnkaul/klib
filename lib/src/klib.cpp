@@ -39,7 +39,7 @@ namespace {
 		auto const i = line.find(substr);
 		if (i == std::string::npos) { continue; }
 		auto view = std::string_view{line}.substr(i + substr.size());
-		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view = view.substr(1); }
+		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view.remove_prefix(1); }
 		return std::string{view};
 	}
 
@@ -48,7 +48,7 @@ namespace {
 
 template <typename Pred>
 constexpr auto trim_until(std::string_view text, Pred pred) -> std::string_view {
-	while (!text.empty() && !pred(text.front())) { text = text.substr(1); }
+	while (!text.empty() && !pred(text.front())) { text.remove_prefix(1); }
 	return text;
 }
 
@@ -121,26 +121,18 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
+#include <klib/from_chars.hpp>
 #include <klib/version_str.hpp>
 
-void klib::append_to(std::string& out, Version const& version) {
-	std::format_to(std::back_inserter(out), "v{}.{}.{}", version.major, version.minor, version.patch);
+auto std::formatter<klib::Version>::format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator {
+	return std::format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
 }
 
-auto klib::to_string(Version const& version) -> std::string {
-	auto ret = std::string{};
-	append_to(ret, version);
-	return ret;
-}
-
-auto klib::to_version(CString text) -> Version {
-	if (text.as_view().starts_with('v')) { text = CString{text.as_view().substr(1).data()}; }
-	if (text.as_view().empty()) { return {}; }
-
+auto klib::to_version(std::string_view text) -> Version {
+	if (text.starts_with('v')) { text.remove_prefix(1); }
+	auto fc = FromChars{.text = text};
 	auto ret = Version{};
-	auto discard = char{};
-	auto str = std::istringstream{text.c_str()};
-	str >> ret.major >> discard >> ret.minor >> discard >> ret.patch;
+	if (!fc(ret.major) || !fc.advance_if('.') || !fc(ret.minor) || !fc.advance_if('.') || !fc(ret.patch)) { return {}; }
 	return ret;
 }
 
@@ -1328,4 +1320,25 @@ namespace {
 
 auto escape::foreground(Rgb const rgb) -> FixedString<> { return colorify(rgb, 38); }
 auto escape::background(Rgb const rgb) -> FixedString<> { return colorify(rgb, 48); }
+} // namespace klib
+
+// from_chars
+
+namespace klib {
+auto FromChars::advance_if(char const ch) -> bool {
+	if (text.empty() || text.front() != ch) { return false; }
+	text.remove_prefix(1);
+	return true;
+}
+
+auto FromChars::advance_if_any(std::string_view const chars) -> bool {
+	if (chars.empty() || text.empty()) { return false; }
+	return std::ranges::any_of(chars, [this](char const ch) { return advance_if(ch); });
+}
+
+auto FromChars::advance_if_all(std::string_view const str) -> bool {
+	if (text.empty() || str.empty() || !text.starts_with(str)) { return false; }
+	text.remove_prefix(str.size());
+	return true;
+}
 } // namespace klib
