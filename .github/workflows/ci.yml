@@ -16,11 +16,11 @@ jobs:
       - name: init
         run: uname -m; sudo apt install -yqq ninja-build
       - name: configure
-        run: cmake -S . --preset=ninja-gcc-strict -B build -DCMAKE_CXX_COMPILER=g++-14
+        run: cmake -S . --preset=ninja-gcc -B build -DCMAKE_CXX_COMPILER=g++-14
       - name: build debug
-        run: cmake --build build --config=Debug
+        run: cmake --build build --config=Debug -- -v
       - name: build release
-        run: cmake --build build --config=Release
+        run: cmake --build build --config=Release -- -v
       - name: test debug
         run: cd build && ctest -V -C Debug
       - name: test release
@@ -32,43 +32,43 @@ jobs:
       - name: init
         run: uname -m; sudo apt install -yqq ninja-build
       - name: configure
-        run: cmake -S . --preset=ninja-clang-strict -B build
+        run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
-        run: cmake --build build --config=Debug
+        run: cmake --build build --config=Debug -- -v
       - name: build release
-        run: cmake --build build --config=Release
+        run: cmake --build build --config=Release -- -v
       - name: test debug
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
   arm64-linux-gcc:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: init
         run: uname -m
       - name: configure
-        run: export CXX=g++-14; cmake -S . --preset=ninja-gcc-strict -B build -DCMAKE_CXX_COMPILER=g++-14
+        run: export CXX=g++-14; cmake -S . --preset=ninja-gcc -B build -DCMAKE_CXX_COMPILER=g++-14
       - name: build debug
-        run: cmake --build build --config=Debug
+        run: cmake --build build --config=Debug -- -v
       - name: build release
-        run: cmake --build build --config=Release
+        run: cmake --build build --config=Release -- -v
       - name: test debug
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
   arm64-linux-clang:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: init
         run: uname -m
       - name: configure
-        run: cmake -S . --preset=ninja-clang-strict -B build
+        run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
-        run: cmake --build build --config=Debug
+        run: cmake --build build --config=Debug -- -v
       - name: build release
-        run: cmake --build build --config=Release
+        run: cmake --build build --config=Release -- -v
       - name: test debug
         run: cd build && ctest -V -C Debug
       - name: test release
@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: configure
-        run: cmake -S . --preset=vs22-strict -B build
+        run: cmake -S . --preset=vs22 -B build
       - name: build debug
         run: cmake --build build --config=Debug --parallel
       - name: build release
@@ -94,11 +94,11 @@ jobs:
       - name: init
         run: choco install ninja
       - name: configure
-        run: cmake -S . --preset=ninja-clang-strict -B clang
+        run: cmake -S . --preset=ninja-clang -B clang
       - name: build debug
-        run: cmake --build clang --config=Debug
+        run: cmake --build clang --config=Debug -- -v
       - name: build release
-        run: cmake --build clang --config=Release
+        run: cmake --build clang --config=Release -- -v
       - name: test debug
         run: cd clang && ctest -V -C Debug
       - name: test release

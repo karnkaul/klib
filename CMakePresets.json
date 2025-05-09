@@ -50,17 +50,8 @@
       "inherits": "base-gcc",
       "binaryDir": "${sourceDir}/out/gcc",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
-      }
-    },
-    {
-      "name": "ninja-gcc-strict",
-      "displayName": "Ninja GCC (strict)",
-      "description": "Build configuration using Ninja Multi-config / GCC, warnings as errors",
-      "inherits": "base-gcc",
-      "binaryDir": "${sourceDir}/out/gcc",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wconversion -Werror"
+        "CMAKE_CXX_FLAGS_DEBUG_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror"
       }
     },
     {
@@ -70,17 +61,8 @@
       "inherits": "base-clang",
       "binaryDir": "${sourceDir}/out/clang",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
-      }
-    },
-    {
-      "name": "ninja-clang-strict",
-      "displayName": "Ninja Clang (strict)",
-      "description": "Build configuration using Ninja Multi-config / clang, warnings as errors",
-      "inherits": "base-clang",
-      "binaryDir": "${sourceDir}/out/clang",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wconversion -Werror"
+        "CMAKE_CXX_FLAGS_DEBUG_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror"
       }
     },
     {
@@ -88,16 +70,9 @@
       "displayName": "Ninja MSVC",
       "description": "Build configuration using Ninja Multi-config / MSVC",
       "inherits": "base-msvc",
-      "binaryDir": "${sourceDir}/out/msvc"
-    },
-    {
-      "name": "ninja-msvc-strict",
-      "displayName": "Ninja MSVC (strict)",
-      "description": "Build configuration using Ninja Multi-config / MSVC, warnings as errors",
-      "inherits": "base-msvc",
       "binaryDir": "${sourceDir}/out/msvc",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/WX"
+        "CMAKE_CXX_FLAGS_INIT": "/WX"
       }
     },
     {
@@ -107,7 +82,8 @@
       "inherits": "default",
       "binaryDir": "${sourceDir}/out/ubsan",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fsanitize=undefined -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
+        "CMAKE_CXX_FLAGS_DEBUG_INIT": "-fsanitize=undefined -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
+        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=undefined -Wall -Wextra -Wpedantic -Wconversion -Werror"
       }
     },
     {
@@ -117,7 +93,8 @@
       "inherits": "default",
       "binaryDir": "${sourceDir}/out/asan",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fsanitize=address -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
+        "CMAKE_CXX_FLAGS_DEBUG_INIT": "-fsanitize=address -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
+        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=address -Wall -Wextra -Wpedantic -Wconversion -Werror"
       }
     },
     {
@@ -127,7 +104,7 @@
       "inherits": "base-msvc",
       "binaryDir": "${sourceDir}/out/asan",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fsanitize=address"
+        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=address"
       }
     },
     {
@@ -137,7 +114,7 @@
       "inherits": "default",
       "binaryDir": "${sourceDir}/out/tsan",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fsanitize=thread -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
+        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=thread -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
       }
     },
     {
@@ -146,19 +123,8 @@
       "description": "Build configuration using Visual Studio 17 (2022)",
       "generator": "Visual Studio 17 2022",
       "binaryDir": "${sourceDir}/out/vs",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      }
-    },
-    {
-      "name": "vs22-strict",
-      "displayName": "Visual Studio 2022 (strict)",
-      "description": "Build configuration using Visual Studio 17 (2022)",
-      "generator": "Visual Studio 17 2022",
-      "binaryDir": "${sourceDir}/out/vs",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/WX"
+        "CMAKE_CXX_FLAGS_INIT": "/WX"
       },
       "architecture": {
         "value": "x64",
