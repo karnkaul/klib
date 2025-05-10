@@ -15,8 +15,6 @@ if(CMAKE_HOST_UNIX)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  ${PROJECT_NAME}::${PROJECT_NAME}-warnings
-  ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
   $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
 )
 
@@ -44,11 +42,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 add_library(${PROJECT_NAME}-test-main)
 add_library(${PROJECT_NAME}::${PROJECT_NAME}-test-main ALIAS ${PROJECT_NAME}-test-main)
-
-target_link_libraries(${PROJECT_NAME}-test-main PRIVATE
-  ${PROJECT_NAME}::${PROJECT_NAME}-warnings
-  ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
-)
 
 target_link_libraries(${PROJECT_NAME}-test-main PUBLIC
   ${PROJECT_NAME}::${PROJECT_NAME}

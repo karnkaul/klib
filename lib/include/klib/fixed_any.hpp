@@ -12,7 +12,7 @@ class FixedAny {
 
 	template <typename Type>
 		requires(sizeof(Type) <= MaxSize)
-	/*implicit*/ FixedAny(Type t) : m_vtable(&VTable::template get<Type>()) {
+	explicit(false) FixedAny(Type t) : m_vtable(&VTable::template get<Type>()) {
 		m_vtable->move_construct(&t, m_storage.data());
 	}
 

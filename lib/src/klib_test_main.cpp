@@ -5,7 +5,7 @@
 
 auto main() -> int {
 	try {
-		std::println("- klib/unit_test {} -", klib::to_string(klib::build_version_v));
+		std::println("- klib/unit_test {} -", klib::build_version_v);
 		return klib::test::run_tests();
 	} catch (std::exception const& e) {
 		std::println(stderr, "PANIC: {}", e.what());
