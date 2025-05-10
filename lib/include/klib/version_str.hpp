@@ -1,12 +1,13 @@
 #pragma once
-#include <klib/c_string.hpp>
+#include <klib/format_parser.hpp>
 #include <klib/version.hpp>
-#include <string>
+#include <format>
 
 namespace klib {
-void append_to(std::string& out, Version const& version);
-
-[[nodiscard]] auto to_string(Version const& version) -> std::string;
-
-[[nodiscard]] auto to_version(CString text) -> Version;
+[[nodiscard]] auto to_version(std::string_view text) -> Version;
 } // namespace klib
+
+template <>
+struct std::formatter<klib::Version> : klib::FormatParser {
+	static auto format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator;
+};

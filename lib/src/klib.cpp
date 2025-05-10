@@ -39,7 +39,7 @@ namespace {
 		auto const i = line.find(substr);
 		if (i == std::string::npos) { continue; }
 		auto view = std::string_view{line}.substr(i + substr.size());
-		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view = view.substr(1); }
+		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view.remove_prefix(1); }
 		return std::string{view};
 	}
 
@@ -48,7 +48,7 @@ namespace {
 
 template <typename Pred>
 constexpr auto trim_until(std::string_view text, Pred pred) -> std::string_view {
-	while (!text.empty() && !pred(text.front())) { text = text.substr(1); }
+	while (!text.empty() && !pred(text.front())) { text.remove_prefix(1); }
 	return text;
 }
 
@@ -121,26 +121,18 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
+#include <klib/from_chars.hpp>
 #include <klib/version_str.hpp>
 
-void klib::append_to(std::string& out, Version const& version) {
-	std::format_to(std::back_inserter(out), "v{}.{}.{}", version.major, version.minor, version.patch);
+auto std::formatter<klib::Version>::format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator {
+	return std::format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
 }
 
-auto klib::to_string(Version const& version) -> std::string {
-	auto ret = std::string{};
-	append_to(ret, version);
-	return ret;
-}
-
-auto klib::to_version(CString text) -> Version {
-	if (text.as_view().starts_with('v')) { text = CString{text.as_view().substr(1).data()}; }
-	if (text.as_view().empty()) { return {}; }
-
+auto klib::to_version(std::string_view text) -> Version {
+	if (text.starts_with('v')) { text.remove_prefix(1); }
+	auto fc = FromChars{.text = text};
 	auto ret = Version{};
-	auto discard = char{};
-	auto str = std::istringstream{text.c_str()};
-	str >> ret.major >> discard >> ret.minor >> discard >> ret.patch;
+	if (!fc(ret.major) || !fc.advance_if('.') || !fc(ret.minor) || !fc.advance_if('.') || !fc(ret.patch)) { return {}; }
 	return ret;
 }
 
@@ -958,8 +950,6 @@ struct FileImpl {
 };
 
 struct Storage {
-	using Lock = std::unique_lock<std::mutex>;
-
 	auto attach_file(std::string path) -> bool {
 		auto lock = std::scoped_lock{m_mutex};
 		return m_file.start(std::move(path));
@@ -975,17 +965,27 @@ struct Storage {
 		return m_file.path;
 	}
 
+	void set_colors(std::optional<Colors> const& colors) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_colors = colors;
+	}
+
+	[[nodiscard]] auto get_colors() const -> std::optional<Colors> {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_colors;
+	}
+
 	void print_to_file(CString const line) {
 		auto lock = std::scoped_lock{m_mutex};
 		m_file.print(line);
 	}
 
 	std::atomic<Level> max_level{Level::Debug};
-	std::atomic<bool> colorify{true};
 
   private:
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
+	std::optional<Colors> m_colors{colors_v};
 };
 
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -1004,7 +1004,8 @@ auto File::is_attached() const -> bool { return m_path == g_storage.get_file_pat
 void log::set_max_level(Level level) { g_storage.max_level = level; }
 auto log::get_max_level() -> Level { return g_storage.max_level; }
 
-void log::set_use_escape_colors(bool const colorify) { g_storage.colorify = colorify; }
+void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
+auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
@@ -1038,11 +1039,19 @@ void log::print(Input const& input) {
 	auto const text = format(input);
 
 	auto* out = input.level == Level::Error ? stderr : stdout;
-	if (g_storage.colorify) {
-		static constexpr auto escape_color_v = EnumArray<Level, std::string_view>{"91", "93", "", "90"};
-		std::print(out, "\x1b[{}m{}\x1b[m", escape_color_v[input.level], text);
+	auto const do_print = [&](std::optional<escape::Rgb> const rgb) {
+		if (!rgb) {
+			std::print("{}", text);
+			return;
+		}
+		auto const fg = escape::foreground(*rgb);
+		std::print(out, "{}{}{}", fg, text, escape::clear);
+	};
+
+	if (auto const colors = g_storage.get_colors()) {
+		do_print((*colors)[input.level]);
 	} else {
-		std::print(out, "{}", text);
+		do_print({});
 	}
 	std::fflush(out);
 
@@ -1295,3 +1304,41 @@ auto klib::vigenere_encrypt(std::string_view const key, std::string_view const i
 auto klib::vigenere_decrypt(std::string_view const key, std::string_view const input) -> std::string {
 	return apply_vigenere(key, input, &VigenereCipher::decrypt);
 }
+
+// escape_code
+
+#include <klib/escape_code.hpp>
+
+namespace klib {
+namespace escape {
+namespace {
+[[nodiscard]] auto colorify(Rgb const rgb, int const target) -> FixedString<> {
+	return {"{}{};2;{};{};{}{}", prefix_v, target, rgb[0], rgb[1], rgb[2], suffix_v};
+}
+} // namespace
+} // namespace escape
+
+auto escape::foreground(Rgb const rgb) -> FixedString<> { return colorify(rgb, 38); }
+auto escape::background(Rgb const rgb) -> FixedString<> { return colorify(rgb, 48); }
+} // namespace klib
+
+// from_chars
+
+namespace klib {
+auto FromChars::advance_if(char const ch) -> bool {
+	if (text.empty() || text.front() != ch) { return false; }
+	text.remove_prefix(1);
+	return true;
+}
+
+auto FromChars::advance_if_any(std::string_view const chars) -> bool {
+	if (chars.empty() || text.empty()) { return false; }
+	return std::ranges::any_of(chars, [this](char const ch) { return advance_if(ch); });
+}
+
+auto FromChars::advance_if_all(std::string_view const str) -> bool {
+	if (text.empty() || str.empty() || !text.starts_with(str)) { return false; }
+	text.remove_prefix(str.size());
+	return true;
+}
+} // namespace klib

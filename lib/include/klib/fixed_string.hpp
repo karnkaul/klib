@@ -9,10 +9,10 @@ class FixedString {
 	FixedString() = default;
 
 	template <std::convertible_to<std::string_view> T>
-	/*implicit*/ constexpr FixedString(T const& text) : m_size(copy_to(m_buf, std::string_view{text})) {}
+	explicit(false) constexpr FixedString(T const& text) : m_size(copy_to(m_buf, std::string_view{text})) {}
 
 	template <typename... Args>
-	/*implicit*/ FixedString(std::format_string<Args...> fmt, Args&&... args) {
+	explicit(false) FixedString(std::format_string<Args...> fmt, Args&&... args) {
 		auto const [out, _] = std::format_to_n(m_buf.data(), std::iter_difference_t<char*>(MaxLength), fmt, std::forward<Args>(args)...);
 		m_size = std::size_t(out - m_buf.data()); // NOLINT(cppcoreguidelines-prefer-member-initializer)
 	}
@@ -44,6 +44,13 @@ class FixedString {
 		return append(rhs);
 	}
 
+	template <std::size_t N>
+	constexpr auto operator==(FixedString<N> const& rhs) const -> bool {
+		return as_view() == rhs.as_view();
+	}
+
+	constexpr auto operator==(std::string_view const rhs) const -> bool { return as_view() == rhs; }
+
 	constexpr operator std::string_view() const { return as_view(); }
 
   private:
@@ -51,3 +58,11 @@ class FixedString {
 	std::size_t m_size{};
 };
 } // namespace klib
+
+template <std::size_t N>
+struct std::formatter<klib::FixedString<N>> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(klib::FixedString<N> const& str, FormatContext& fc) const {
+		return formatter<string_view>::format(str.as_view(), fc);
+	}
+};
