@@ -8,7 +8,7 @@ class ScopedDefer {
 	using Func = std::move_only_function<void()>;
 
 	template <std::convertible_to<Func> F = Func>
-	/*implicit*/ ScopedDefer(F func = {}) : m_func(std::move(func)) {}
+	explicit(false) ScopedDefer(F func = {}) : m_func(std::move(func)) {}
 
   private:
 	struct Id {

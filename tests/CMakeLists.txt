@@ -5,8 +5,6 @@ if(NOT "${sources}" STREQUAL "")
   target_link_libraries(${PROJECT_NAME}-tests PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}-test-main
     ${PROJECT_NAME}::${PROJECT_NAME}
-    ${PROJECT_NAME}::${PROJECT_NAME}-warnings
-    ${PROJECT_NAME}::${PROJECT_NAME}-ndwerror
   )
   target_include_directories(${PROJECT_NAME}-tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src"

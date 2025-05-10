@@ -10,7 +10,7 @@ class EnumFlags {
 	EnumFlags() = default;
 
 	template <std::same_as<E>... Es>
-	/*implicit*/ constexpr EnumFlags(Es const... es) : m_bits((... | static_cast<value_type>(es))) {}
+	explicit(false) constexpr EnumFlags(Es const... es) : m_bits((... | static_cast<value_type>(es))) {}
 
 	constexpr auto operator|=(EnumFlags const rhs) -> EnumFlags& {
 		m_bits |= rhs.m_bits;
