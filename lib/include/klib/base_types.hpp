@@ -26,7 +26,7 @@ class MoveOnly {
 class Pinned {
   public:
 	Pinned(Pinned const&) = delete;
-	Pinned(Pinned&&) = default;
+	Pinned(Pinned&&) = delete;
 	auto operator=(Pinned const&) = delete;
 	auto operator=(Pinned&&) = delete;
 

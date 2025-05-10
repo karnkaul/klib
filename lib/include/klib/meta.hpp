@@ -1,16 +1,8 @@
 #pragma once
+#include <concepts>
 #include <type_traits>
 
 namespace klib {
-template <template <typename, typename> typename Cmp, typename T, typename... Ts>
-class TypeSelector;
-
-template <template <typename, typename> typename Cmp, typename T>
-class TypeSelector<Cmp, T> {
-  public:
-	using type = T;
-};
-
 template <template <typename, typename> typename Cmp, typename T, typename... Ts>
 class TypeSelector {
 	using Lhs = T;
@@ -18,6 +10,12 @@ class TypeSelector {
 
   public:
 	using type = Cmp<Lhs, Rhs>::type;
+};
+
+template <template <typename, typename> typename Cmp, typename T>
+class TypeSelector<Cmp, T> {
+  public:
+	using type = T;
 };
 
 template <typename T, typename U>
@@ -35,4 +33,7 @@ using LargestOf = TypeSelector<LargerType, T, Ts...>::type;
 
 template <typename T, typename... Ts>
 using SmallestOf = TypeSelector<SmallerType, T, Ts...>::type;
+
+static_assert(std::same_as<LargestOf<char, int, void*>, void*>);
+static_assert(std::same_as<SmallestOf<char, double>, char>);
 } // namespace klib

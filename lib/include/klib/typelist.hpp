@@ -1,6 +1,5 @@
 #pragma once
-
-#include <concepts>
+#include <klib/meta.hpp>
 
 namespace klib {
 template <typename... Ts>
@@ -35,28 +34,6 @@ struct TypelistBackT<Typelist<T, Ts...>> {
 template <typename List>
 using TypelistBack = TypelistBackT<List>::type;
 
-template <typename List>
-class LargestOfT;
-
-template <typename T>
-class LargestOfT<Typelist<T>> {
-  public:
-	using type = T;
-};
-
-template <typename T, typename... Ts>
-class LargestOfT<Typelist<T, Ts...>> {
-	using Lhs = T;
-	using Rhs = LargestOfT<Typelist<Ts...>>::type;
-
-  public:
-	using type = std::conditional_t<(sizeof(Lhs) >= sizeof(Rhs)), Lhs, Rhs>;
-};
-
-template <typename List>
-using LargestOf = LargestOfT<List>::type;
-
 static_assert(std::same_as<TypelistFront<Typelist<int, char, float>>, int>);
 static_assert(std::same_as<TypelistBack<Typelist<int, char, float>>, float>);
-static_assert(std::same_as<LargestOf<Typelist<int, double>>, double>);
 } // namespace klib
