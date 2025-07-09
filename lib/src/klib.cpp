@@ -1358,8 +1358,8 @@ auto FromChars::advance_if_all(std::string_view const str) -> bool {
 #include <klib/env.hpp>
 
 namespace klib {
-auto env::exe_path() -> std::string {
-	static auto const ret = [] {
+auto env::exe_path() -> std::string const& {
+	static std::string const ret = [] {
 		auto ret = std::string{};
 #if defined(_WIN32)
 		auto buffer = std::array<char, MAX_PATH>{};
