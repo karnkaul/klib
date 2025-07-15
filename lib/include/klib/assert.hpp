@@ -26,7 +26,6 @@ void print(std::string_view expr, std::stacktrace const& trace = KLIB_GET_TRACE(
 void trigger_failure();
 } // namespace klib::assertion
 
-#if defined(KLIB_DEBUG)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define KLIB_ASSERT(expr)                                                                                                                                      \
 	if (!bool(expr)) {                                                                                                                                         \
@@ -34,7 +33,10 @@ void trigger_failure();
 		KLIB_DEBUG_TRAP();                                                                                                                                     \
 		::klib::assertion::trigger_failure();                                                                                                                  \
 	}
+#if defined(KLIB_DEBUG)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define KLIB_ASSERT_DEBUG(expr) KLIB_ASSERT(expr)
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define KLIB_ASSERT(expr)
+#define KLIB_ASSERT_DEBUG(expr)
 #endif
