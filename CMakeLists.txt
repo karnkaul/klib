@@ -12,7 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_DEBUG_POSTFIX "-d")
 
 function(klib_set_mainCRTStartup TARGET)
-  if(WIN32)
+  if(WIN32 AND NOT MINGW)
     message(STATUS "adding /ENTRY:mainCRTStartup link option to ${TARGET}")
     target_link_options(${TARGET} PRIVATE
       "LINKER:/ENTRY:mainCRTStartup"

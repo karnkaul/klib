@@ -17,11 +17,21 @@
 #include <vector>
 
 #if defined(_WIN32)
+#if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
+#endif
+#if !defined(NOCOMM)
 #define NOCOMM
+#endif
+#if !defined(NOMINMAX)
 #define NOMINMAX
+#endif
+#if !defined(STRICT)
 #define STRICT
+#endif
+#if !defined(UNICODE)
 #define UNICODE
+#endif
 #include <Windows.h>
 #endif
 
@@ -1091,6 +1101,7 @@ auto is_internal(std::string_view const trace_description) -> bool {
 	static constexpr auto phrases_v = std::array{
 		"!invoke_main+",
 		"start_call_main",
+		"register_frame_ctor",
 	};
 	if (trace_description.empty()) { return true; }
 	return std::ranges::any_of(phrases_v, [trace_description](std::string_view const phrase) { return trace_description.contains(phrase); });
@@ -1345,17 +1356,12 @@ auto FromChars::advance_if_all(std::string_view const str) -> bool {
 
 // env
 
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
-#elif defined(__linux__)
-#include <cxxabi.h>
+#include <klib/env.hpp>
+
+#if defined(__linux__)
 #include <linux/limits.h>
 #include <unistd.h>
 #endif
-
-#include <klib/env.hpp>
 
 namespace klib {
 auto env::exe_path() -> std::string const& {
@@ -1382,8 +1388,19 @@ auto env::exe_path() -> std::string const& {
 
 #include <klib/demangle.hpp>
 
+#if __has_include("cxxabi.h")
+#include <cxxabi.h>
+#endif
+
 auto klib::demangled_name(std::type_info const& info) -> std::string {
-#if defined(_WIN32)
+#if __has_include("cxxabi.h")
+	auto status = int{};
+	auto const buf = std::unique_ptr<char, decltype(std::free)*>{
+		abi::__cxa_demangle(info.name(), nullptr, nullptr, &status),
+		std::free,
+	};
+	if (status == 0) { return buf.get(); }
+#elif defined(_WIN32)
 	using namespace std::string_view_literals;
 	static constexpr auto prefixes_v = std::array{
 		"struct "sv,
@@ -1398,13 +1415,6 @@ auto klib::demangled_name(std::type_info const& info) -> std::string {
 		}
 	}
 	return std::string{view};
-#elif defined(__linux__)
-	auto status = int{};
-	auto const buf = std::unique_ptr<char, decltype(std::free)*>{
-		abi::__cxa_demangle(info.name(), nullptr, nullptr, &status),
-		std::free,
-	};
-	if (status == 0) { return buf.get(); }
 #endif
 	return info.name();
 }
