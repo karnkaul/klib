@@ -20,14 +20,8 @@
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
 #endif
-#if !defined(NOCOMM)
-#define NOCOMM
-#endif
 #if !defined(NOMINMAX)
 #define NOMINMAX
-#endif
-#if !defined(STRICT)
-#define STRICT
 #endif
 #if !defined(UNICODE)
 #define UNICODE
@@ -36,40 +30,6 @@
 #endif
 
 namespace chr = std::chrono;
-
-// common
-namespace {
-[[maybe_unused]] constexpr auto is_digit(char const c) { return c >= '0' && c <= '9'; };
-
-[[maybe_unused]] auto get_line_containing(char const* path, std::string_view const substr) -> std::string {
-	auto file = std::ifstream{path};
-	if (!file.is_open()) { return {}; }
-
-	for (auto line = std::string{}; std::getline(file, line);) {
-		auto const i = line.find(substr);
-		if (i == std::string::npos) { continue; }
-		auto view = std::string_view{line}.substr(i + substr.size());
-		while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())) != 0) { view.remove_prefix(1); }
-		return std::string{view};
-	}
-
-	return {};
-}
-
-template <typename Pred>
-constexpr auto trim_until(std::string_view text, Pred pred) -> std::string_view {
-	while (!text.empty() && !pred(text.front())) { text.remove_prefix(1); }
-	return text;
-}
-
-template <std::integral T>
-auto to_int(std::string_view const text, T const fallback = {}) -> T {
-	auto ret = T{};
-	auto const [_, ec] = std::from_chars(text.data(), text.data() + text.size(), ret);
-	if (ec != std::errc{}) { return fallback; }
-	return ret;
-}
-} // namespace
 
 // unit test
 
@@ -1077,13 +1037,49 @@ void log::print(Input const& input) {
 
 #include <klib/debug_trap.hpp>
 
+namespace {
+// https://gcc.gnu.org/pipermail/libstdc++/2025-May/061246.html
+[[maybe_unused]] auto glibcxx_is_debugger_present() -> bool {
+	using namespace std;
+	string_view const prefix = "TracerPid:\t"; // populated since Linux 2.6.0
+	ifstream in("/proc/self/status");
+	string line;
+	while (std::getline(in, line)) {
+		if (!line.starts_with(prefix)) { continue; }
+
+		string_view tracer = line;
+		tracer.remove_prefix(prefix.size());
+		if (tracer.size() == 1 && tracer[0] == '0') [[likely]]
+			return false; // Not being traced.
+
+		in.close();
+		string_view cmd;
+		string proc_dir = "/proc/" + string(tracer) + '/';
+		in.open(proc_dir + "comm"); // since Linux 2.6.33
+		if (std::getline(in, line)) [[likely]]
+			cmd = line;
+		else {
+			in.close();
+			in.open(proc_dir + "cmdline");
+			if (std::getline(in, line)) cmd = line.c_str(); // Only up to first '\0'
+			else { return false; }
+		}
+
+		static constexpr auto known_debuggers = std::array{"gdb", "gdbserver", "lldb-server"};
+		return std::ranges::any_of(known_debuggers, [cmd](char const* dbg) { return cmd.ends_with(dbg); });
+
+		// We found the TracerPid line, no need to do any more work.
+		break;
+	}
+	return false;
+}
+} // namespace
+
 auto klib::is_debugger_attached() -> bool {
 #if defined(_WIN32)
 	return IsDebuggerPresent() != 0;
 #else
-	auto const tpid_line = get_line_containing("/proc/self/status", "TracerPid:");
-	auto const tracer_pid = trim_until(tpid_line, &is_digit);
-	return to_int<std::int64_t>(tracer_pid, -1) > 0;
+	return glibcxx_is_debugger_present();
 #endif
 }
 
@@ -1118,12 +1114,17 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 		for (auto const& entry : trace) {
 			auto const description = entry.description();
 			if (is_internal(description)) { return; }
-			std::format_to(std::back_inserter(out), "  {} [{}:{}]\n", description, entry.source_file(), entry.source_line());
+			std::format_to(std::back_inserter(out), "  {}", description);
+			if constexpr (debug_v) {
+				std::string const file = entry.source_file();
+				if (!file.empty() && entry.source_line() > 0) { std::format_to(std::back_inserter(out), " [{}:{}]", file, entry.source_line()); }
+			}
+			out += '\n';
 		}
 	}
 }
 
-void assertion::print(std::string_view expr, std::stacktrace const& trace) noexcept(false) {
+void assertion::print(std::string_view expr, std::stacktrace const& trace) {
 	auto msg = std::format("assertion failed: '{}'\n", expr);
 	append_trace(msg, trace);
 	std::println(stderr, "{}", msg);
@@ -1388,33 +1389,33 @@ auto env::exe_path() -> std::string const& {
 
 #include <klib/demangle.hpp>
 
-#if __has_include("cxxabi.h")
+#if __has_include(<cxxabi.h>)
+#define KLIB_USE_CXA_DEMANGLE
 #include <cxxabi.h>
 #endif
 
 auto klib::demangled_name(std::type_info const& info) -> std::string {
-#if __has_include("cxxabi.h")
+#if defined(KLIB_USE_CXA_DEMANGLE)
 	auto status = int{};
 	auto const buf = std::unique_ptr<char, decltype(std::free)*>{
 		abi::__cxa_demangle(info.name(), nullptr, nullptr, &status),
 		std::free,
 	};
 	if (status == 0) { return buf.get(); }
-#elif defined(_WIN32)
-	using namespace std::string_view_literals;
+#endif
 	static constexpr auto prefixes_v = std::array{
-		"struct "sv,
-		"class "sv,
-		"enum "sv,
+		"struct ",
+		"class ",
+		"enum ",
 	};
 	auto view = std::string_view{info.name()};
-	for (auto const prefix : prefixes_v) {
+	for (std::string_view const prefix : prefixes_v) {
 		if (view.starts_with(prefix)) {
 			view.remove_prefix(prefix.size());
 			break;
 		}
 	}
 	return std::string{view};
-#endif
-	return info.name();
 }
+
+#undef KLIB_USE_CXA_DEMANGLE

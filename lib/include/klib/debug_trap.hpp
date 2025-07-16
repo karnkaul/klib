@@ -6,7 +6,7 @@
 #define KLIB_EXEC_DEBUG_TRAP() __builtin_debug_trap()
 #elif __has_include(<csignal>)
 #include <csignal>
-#define KLIB_EXEC_DEBUG_TRAP() raise(SIGTRAP);
+#define KLIB_EXEC_DEBUG_TRAP() std::raise(SIGTRAP)
 #else
 #define KLIB_EXEC_DEBUG_TRAP()
 #endif
