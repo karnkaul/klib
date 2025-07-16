@@ -10,7 +10,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 set(stacktrace_lib "")
 
-if(CMAKE_HOST_UNIX)
+if(CMAKE_HOST_UNIX OR MINGW)
   set(stacktrace_lib "stdc++exp")
 endif()
 
