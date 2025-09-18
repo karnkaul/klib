@@ -30,7 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: uname -m
+        run: |
+            uname -m
+            sudo apt update -yqq && sudo apt install -yqq clang-20
+            sudo update-alternatives --remove-all clang++
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 10
       - name: configure
         run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
@@ -62,7 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: uname -m
+        run: |
+            uname -m
+            sudo apt update -yqq && sudo apt install -yqq clang-20
+            sudo update-alternatives --remove-all clang++
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 10
       - name: configure
         run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
