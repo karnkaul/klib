@@ -1,4 +1,3 @@
-#include <klib/build_version.hpp>
 #include <algorithm>
 #include <array>
 #include <atomic>
