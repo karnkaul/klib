@@ -25,6 +25,8 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   x64-linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -45,6 +47,8 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   arm64-linux-gcc:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -61,6 +65,8 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   arm64-linux-clang:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -81,6 +87,8 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   x64-windows-vs22:
     runs-on: windows-2025
     steps:
@@ -95,6 +103,8 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   x64-windows-clang:
     runs-on: windows-2025
     steps:
@@ -109,6 +119,8 @@ jobs:
         run: cd clang && ctest -V -C Debug
       - name: test release
         run: cd clang && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
   x64-mingw-gcc:
     runs-on: windows-2025
     steps:
@@ -123,3 +135,5 @@ jobs:
         run: cd build && ctest -V -C Debug
       - name: test release
         run: cd build && ctest -V -C Release
+      - name: test install
+        run: ./install_test/script.sh build
