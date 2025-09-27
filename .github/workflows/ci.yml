@@ -14,9 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: uname -m
+        run: |
+            uname -m
+            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 10
       - name: configure
-        run: cmake -S . --preset=ninja-gcc -B build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+        run: cmake -S . --preset=ninja-gcc -B build
       - name: build debug
         run: cmake --build build --config=Debug -- -v
       - name: build release
@@ -26,7 +28,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-gcc -P install_test/script.cmake
   x64-linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -48,13 +50,15 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-clang -P install_test/script.cmake
   arm64-linux-gcc:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: init
-        run: uname -m
+        run: |
+            uname -m
+            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 10
       - name: configure
         run: cmake -S . --preset=ninja-gcc -B build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
       - name: build debug
@@ -66,7 +70,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-gcc -P install_test/script.cmake
   arm64-linux-clang:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -88,7 +92,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-clang -P install_test/script.cmake
   x64-windows-vs22:
     runs-on: windows-2025
     steps:
@@ -104,9 +108,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: |
-            mv ./install_test/script.sh ./install_test/script.bat
-            ./install_test/script.bat build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        run: cmake -DBUILD_DIR=build -DPRESET=vs22 -P install_test/script.cmake
   x64-windows-clang:
     runs-on: windows-2025
     steps:
@@ -122,9 +124,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: |
-            mv ./install_test/script.sh ./install_test/script.bat
-            ./install_test/script.bat build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-clang -P install_test/script.cmake
   x64-mingw-gcc:
     runs-on: windows-2025
     steps:
@@ -140,4 +140,6 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: bash.exe ./install_test/script.sh build
+        run: cmake -DBUILD_DIR=build -DPRESET=ninja-gcc -P install_test/script.cmake
+
+
