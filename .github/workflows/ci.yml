@@ -26,7 +26,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
   x64-linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -48,7 +48,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
   arm64-linux-gcc:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -66,7 +66,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
   arm64-linux-clang:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -88,7 +88,7 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: ./install_test/script.sh build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
   x64-windows-vs22:
     runs-on: windows-2025
     steps:
