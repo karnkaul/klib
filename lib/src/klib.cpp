@@ -1049,27 +1049,29 @@ namespace {
 
 		string_view tracer = line;
 		tracer.remove_prefix(prefix.size());
-		if (tracer.size() == 1 && tracer[0] == '0') [[likely]]
+		if (tracer.size() == 1 && tracer[0] == '0') [[likely]] {
 			return false; // Not being traced.
+		}
 
 		in.close();
 		string_view cmd;
 		string proc_dir = "/proc/" + string(tracer) + '/';
 		in.open(proc_dir + "comm"); // since Linux 2.6.33
-		if (std::getline(in, line)) [[likely]]
+		if (std::getline(in, line)) [[likely]] {
 			cmd = line;
-		else {
+		} else {
 			in.close();
 			in.open(proc_dir + "cmdline");
-			if (std::getline(in, line)) cmd = line.c_str(); // Only up to first '\0'
-			else { return false; }
+			if (std::getline(in, line)) {
+				// NOLINTNEXTLINE(readability-redundant-string-cstr)
+				cmd = line.c_str(); // Only up to first '\0'
+			} else {
+				return false;
+			}
 		}
 
 		static constexpr auto known_debuggers = std::array{"gdb", "gdbserver", "lldb-server"};
 		return std::ranges::any_of(known_debuggers, [cmd](char const* dbg) { return cmd.ends_with(dbg); });
-
-		// We found the TracerPid line, no need to do any more work.
-		break;
 	}
 	return false;
 }

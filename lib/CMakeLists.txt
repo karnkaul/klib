@@ -18,22 +18,23 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
-)
-
 target_include_directories(${PROJECT_NAME} PRIVATE
   src
 )
 
-file(GLOB_RECURSE headers LIST_DIRECTORIES false "include/*.hpp")
-target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
-  ${headers}
-)
+set(version_header include/${PROJECT_NAME}/build_version.hpp)
+configure_file(src/build_version.hpp.in ${version_header} @ONLY)
 
-configure_file(cmake_src/build_version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp")
-target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include" FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/build_version.hpp"
+file(GLOB_RECURSE headers LIST_DIRECTORIES false "include/*.hpp")
+
+target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS
+  BASE_DIRS
+  include
+  "${CMAKE_CURRENT_BINARY_DIR}/include"
+
+  FILES
+  ${headers}
+  "${CMAKE_CURRENT_BINARY_DIR}/${version_header}"
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -50,3 +51,21 @@ target_link_libraries(${PROJECT_NAME}-test-main PUBLIC
 target_sources(${PROJECT_NAME}-test-main PRIVATE
   src/klib_test_main.cpp
 )
+
+if(KLIB_INSTALL)
+  message(STATUS "[klib] setting up install")
+  include(GNUInstallDirs)
+
+  install(
+    TARGETS klib
+    EXPORT klib-targets
+    FILE_SET HEADERS
+  )
+
+  install(
+    EXPORT klib-targets
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/klib"
+    NAMESPACE klib::
+    FILE klib-config.cmake
+  )
+endif()
