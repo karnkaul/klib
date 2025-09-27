@@ -104,23 +104,23 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: bash.exe ./install_test/script.sh build
   x64-windows-clang:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
       - name: configure
-        run: cmake -S . --preset=ninja-clang -B clang
+        run: cmake -S . --preset=ninja-clang -B build
       - name: build debug
-        run: cmake --build clang --config=Debug -- -v
+        run: cmake --build build --config=Debug -- -v
       - name: build release
-        run: cmake --build clang --config=Release -- -v
+        run: cmake --build build --config=Release -- -v
       - name: test debug
-        run: cd clang && ctest -V -C Debug
+        run: cd build && ctest -V -C Debug
       - name: test release
-        run: cd clang && ctest -V -C Release
+        run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: bash.exe ./install_test/script.sh build
   x64-mingw-gcc:
     runs-on: windows-2025
     steps:
@@ -136,4 +136,4 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: ./install_test/script.sh build
+        run: bash.exe ./install_test/script.sh build
