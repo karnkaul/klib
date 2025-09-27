@@ -104,7 +104,9 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: bash.exe ./install_test/script.sh build
+        run: |
+            mv ./install_test/script.sh ./install_test/script.bat
+            ./install_test/script.bat build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
   x64-windows-clang:
     runs-on: windows-2025
     steps:
@@ -120,7 +122,9 @@ jobs:
       - name: test release
         run: cd build && ctest -V -C Release
       - name: test install
-        run: bash.exe ./install_test/script.sh build
+        run: |
+            mv ./install_test/script.sh ./install_test/script.bat
+            ./install_test/script.bat build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
   x64-mingw-gcc:
     runs-on: windows-2025
     steps:
