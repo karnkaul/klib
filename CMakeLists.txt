@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(klib VERSION "0.5.4")
+set(package_name klib)
+project(${package_name} VERSION "0.5.4")
 
 option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
 option(KLIB_INSTALL "Setup CMake install for klib" ON)
@@ -22,6 +23,26 @@ function(klib_set_mainCRTStartup TARGET)
 endfunction()
 
 add_subdirectory(lib)
+
+if(KLIB_INSTALL)
+  message(STATUS "[${package_name}] setting up install")
+  include(GNUInstallDirs)
+
+  set(install_dst "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
+
+  install(
+    TARGETS ${package_name}
+    EXPORT ${package_name}-targets
+    FILE_SET HEADERS
+  )
+
+  install(
+    EXPORT ${package_name}-targets
+    DESTINATION "${install_dst}"
+    NAMESPACE ${package_name}::
+    FILE ${package_name}-config.cmake
+  )
+endif()
 
 if(KLIB_BUILD_TESTS)
   enable_testing()
