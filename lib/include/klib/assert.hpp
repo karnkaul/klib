@@ -1,5 +1,5 @@
 #pragma once
-#include <klib/debug_trap.hpp>
+#include "klib/debug_trap.hpp"
 #include <cstdint>
 #include <exception>
 #include <stacktrace>

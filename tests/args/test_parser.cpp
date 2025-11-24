@@ -1,5 +1,5 @@
+#include "klib/unit_test.hpp"
 #include <args/parser.hpp>
-#include <klib/unit_test.hpp>
 #include <array>
 
 namespace {

@@ -1,6 +1,6 @@
 #pragma once
+#include "klib/enum_ops.hpp"
 #include <klib/args/printer.hpp>
-#include <klib/enum_ops.hpp>
 #include <cstdint>
 #include <string_view>
 

@@ -1,6 +1,6 @@
 #pragma once
-#include <klib/format_parser.hpp>
-#include <klib/version.hpp>
+#include "klib/format_parser.hpp"
+#include "klib/version.hpp"
 #include <format>
 
 namespace klib {
