@@ -4,21 +4,13 @@
 #include <cstdint>
 #include <string_view>
 
-namespace klib {
-namespace args {
-enum class ParseFlag : std::int8_t;
-} // namespace args
-
-template <>
-inline constexpr auto enable_enum_ops_v<args::ParseFlag> = true;
-} // namespace klib
-
 namespace klib::args {
 enum class ParseFlag : std::int8_t {
 	None = 0,
 	/// \brief Omit printing default values of optional positional args.
 	OmitDefaultValues = 1 << 0,
 };
+constexpr auto enable_enum_bitops(ParseFlag /*unused*/) -> bool { return true; }
 
 struct ParseInfo {
 	/// \brief One liner app description.
