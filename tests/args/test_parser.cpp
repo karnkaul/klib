@@ -1,3 +1,4 @@
+#include "klib/args/parse_info.hpp"
 #include "klib/unit_test.hpp"
 #include <args/parser.hpp>
 #include <array>
@@ -118,12 +119,26 @@ TEST(arg_parser_command) {
 		named_flag(app_flag, "app-flag"),
 		command(cmd_args, "cmd"),
 	};
-	auto parser = Parser{app_info_v, {}, cli_args};
-	auto const result = parser.parse(app_args);
+	struct NullPrinter : IPrinter {
+		void println(std::string_view /*text*/) final {}
+		void printerr(std::string_view /*text*/) final {}
+	};
+	auto printer = NullPrinter{};
+	auto const app_info = ParseInfo{
+		.printer = &printer,
+		.flags = ParseFlag::PrintHelpOnMissingCommand,
+	};
+	auto parser = Parser{app_info, {}, cli_args};
+	auto result = parser.parse(app_args);
 	EXPECT(!result.early_return());
 	EXPECT(app_flag == true);
 	EXPECT(result.get_command_name() == "cmd");
 	EXPECT(cmd_flag == true);
 	EXPECT(cmd_arg == "cmd-arg");
+
+	parser = Parser{app_info, {}, {}};
+	result = parser.parse(app_args);
+	EXPECT(result.early_return());
+	EXPECT(result.executed_builtin());
 }
 } // namespace

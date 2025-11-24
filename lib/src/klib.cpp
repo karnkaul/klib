@@ -792,7 +792,13 @@ auto Parser::usage_string() const -> std::string {
 }
 
 auto Parser::check_required() -> ParseResult {
-	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command"); }
+	if (m_has_commands && m_cursor.cmd == nullptr) {
+		if ((m_info.flags & ParseFlag::PrintHelpOnMissingCommand) == ParseFlag::PrintHelpOnMissingCommand) {
+			m_info.printer->println(help_string());
+			return ExecutedBuiltin{};
+		}
+		return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command");
+	}
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
 		if (p->is_required()) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.missing_argument(p->name); }
