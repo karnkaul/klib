@@ -1,33 +1,20 @@
 #pragma once
-#include <klib/concepts.hpp>
+#include "klib/concepts.hpp"
 #include <utility>
 
 namespace klib {
 template <EnumT E>
-constexpr auto enable_enum_ops_v = false;
+constexpr auto enable_enum_bitops(E&& /*unused*/) -> bool {
+	return false;
+}
 
 template <typename E>
-concept EnumOpsT = EnumT<E> && enable_enum_ops_v<E>;
+concept EnumOpsT = EnumT<E> && enable_enum_bitops(E{});
 } // namespace klib
-
-template <klib::EnumT E>
-struct Or {
-	constexpr auto operator()(E const a, E const b) const -> E { return E{std::underlying_type_t<E>(std::to_underlying(a) | std::to_underlying(b))}; }
-};
-
-template <klib::EnumT E>
-struct And {
-	constexpr auto operator()(E const a, E const b) const -> E { return E{std::underlying_type_t<E>(std::to_underlying(a) & std::to_underlying(b))}; }
-};
-
-template <klib::EnumT E>
-struct Inv {
-	constexpr auto operator()(E const e) const -> E { return E{std::underlying_type_t<E>(~std::to_underlying(e))}; }
-};
 
 template <klib::EnumOpsT E>
 constexpr auto operator|=(E& out, E const b) -> E& {
-	out = Or<E>{}(out, b);
+	out = E{std::underlying_type_t<E>(std::to_underlying(out) | std::to_underlying(b))};
 	return out;
 }
 
@@ -40,7 +27,7 @@ constexpr auto operator|(E const a, E const b) -> E {
 
 template <klib::EnumOpsT E>
 constexpr auto operator&=(E& out, E const b) -> E& {
-	out = And<E>{}(out, b);
+	out = E{std::underlying_type_t<E>(std::to_underlying(out) & std::to_underlying(b))};
 	return out;
 }
 
@@ -53,5 +40,5 @@ constexpr auto operator&(E const a, E const b) -> E {
 
 template <klib::EnumOpsT E>
 constexpr auto operator~(E const e) -> E {
-	return Inv<E>{}(e);
+	return E{std::underlying_type_t<E>(~std::to_underlying(e))};
 }

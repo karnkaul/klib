@@ -33,7 +33,7 @@ namespace chr = std::chrono;
 
 // unit test
 
-#include <klib/unit_test.hpp>
+#include "klib/unit_test.hpp"
 
 namespace klib {
 namespace {
@@ -91,8 +91,8 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
-#include <klib/from_chars.hpp>
-#include <klib/version_str.hpp>
+#include "klib/from_chars.hpp"
+#include "klib/version_str.hpp"
 
 auto std::formatter<klib::Version>::format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator {
 	return std::format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
@@ -792,7 +792,13 @@ auto Parser::usage_string() const -> std::string {
 }
 
 auto Parser::check_required() -> ParseResult {
-	if (m_has_commands && m_cursor.cmd == nullptr) { return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command"); }
+	if (m_has_commands && m_cursor.cmd == nullptr) {
+		if ((m_info.flags & ParseFlag::PrintHelpOnMissingCommand) == ParseFlag::PrintHelpOnMissingCommand) {
+			m_info.printer->println(help_string());
+			return ExecutedBuiltin{};
+		}
+		return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command");
+	}
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
 		if (p->is_required()) { return ErrorPrinter{*m_info.printer, m_exe_name, cmd_name()}.missing_argument(p->name); }
@@ -860,7 +866,7 @@ auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc
 
 // log
 
-#include <klib/log.hpp>
+#include "klib/log.hpp"
 
 namespace klib {
 namespace log {
@@ -1035,7 +1041,7 @@ void log::print(Input const& input) {
 
 // debug_trap
 
-#include <klib/debug_trap.hpp>
+#include "klib/debug_trap.hpp"
 
 namespace {
 // https://gcc.gnu.org/pipermail/libstdc++/2025-May/061246.html
@@ -1087,7 +1093,7 @@ auto klib::is_debugger_attached() -> bool {
 
 // assert
 
-#include <klib/assert.hpp>
+#include "klib/assert.hpp"
 
 namespace klib {
 namespace assertion {
@@ -1143,7 +1149,7 @@ void assertion::trigger_failure() {
 
 // text_table
 
-#include <klib/text_table.hpp>
+#include "klib/text_table.hpp"
 
 namespace klib {
 void TextTable::push_row(std::vector<std::string> row) {
@@ -1246,7 +1252,7 @@ auto TextTable::Builder::build() const -> TextTable {
 
 // vigenere
 
-#include <klib/vigenere_cipher.hpp>
+#include "klib/vigenere_cipher.hpp"
 #include <functional>
 
 namespace klib {
@@ -1321,7 +1327,7 @@ auto klib::vigenere_decrypt(std::string_view const key, std::string_view const i
 
 // escape_code
 
-#include <klib/escape_code.hpp>
+#include "klib/escape_code.hpp"
 
 namespace klib {
 namespace escape {
@@ -1359,7 +1365,7 @@ auto FromChars::advance_if_all(std::string_view const str) -> bool {
 
 // env
 
-#include <klib/env.hpp>
+#include "klib/env.hpp"
 
 #if defined(__linux__)
 #include <linux/limits.h>
@@ -1389,7 +1395,7 @@ auto env::exe_path() -> std::string const& {
 
 // demangle
 
-#include <klib/demangle.hpp>
+#include "klib/demangle.hpp"
 
 #if __has_include(<cxxabi.h>)
 #define KLIB_USE_CXA_DEMANGLE

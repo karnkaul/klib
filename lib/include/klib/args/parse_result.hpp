@@ -5,6 +5,7 @@
 
 namespace klib::args {
 /// \brief Error parsing passed arguments.
+// NOLINTNEXTLINE(performance-enum-size)
 enum class ParseError : int {
 	InvalidCommand = 100,
 	InvalidOption,

@@ -1,6 +1,6 @@
-#include <klib/build_version.hpp>
-#include <klib/unit_test.hpp>
-#include <klib/version_str.hpp>
+#include "klib/build_version.hpp"
+#include "klib/unit_test.hpp"
+#include "klib/version_str.hpp"
 #include <print>
 
 auto main() -> int {

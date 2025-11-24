@@ -1,6 +1,6 @@
+#include "klib/unit_test.hpp"
 #include <args/assigner.hpp>
 #include <klib/args/arg.hpp>
-#include <klib/unit_test.hpp>
 #include <array>
 #include <ranges>
 

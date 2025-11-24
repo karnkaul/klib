@@ -1,4 +1,4 @@
-#include <klib/enum_ops.hpp>
+#include "klib/enum_ops.hpp"
 #include <cstdint>
 
 namespace {
@@ -7,14 +7,8 @@ enum class Flag : std::int8_t {
 	One = 1 << 0,
 	Two = 1 << 1,
 };
-} // namespace
+constexpr auto enable_enum_bitops(Flag /*unused*/) { return true; }
 
-namespace klib {
-template <>
-constexpr auto enable_enum_ops_v<Flag> = true;
-} // namespace klib
-
-namespace {
 static_assert(Flag{} == Flag::None);
 static_assert(((Flag::One | Flag::Two) & Flag::One) == Flag::One);
 static_assert(((Flag::One | Flag::Two) & Flag::Two) == Flag::Two);

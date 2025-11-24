@@ -1,5 +1,5 @@
+#include "klib/unit_test.hpp"
 #include <klib/task/queue.hpp>
-#include <klib/unit_test.hpp>
 #include <array>
 #include <chrono>
 #include <random>
