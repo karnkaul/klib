@@ -1,3 +1,4 @@
+#include "klib/c_string.hpp"
 #include "klib/log.hpp"
 #include "klib/unit_test.hpp"
 #include <filesystem>
@@ -7,10 +8,12 @@
 namespace {
 using namespace klib;
 
+struct LogTestType {};
+
 TEST(log) {
 	static constexpr CString filename_v{"test.log"};
 
-	auto const logger = TaggedLogger{"klib::test"};
+	auto const logger = TypedLogger<LogTestType>{};
 	{
 		auto const file = log::File{filename_v.c_str()};
 		logger.info("expect in log file");

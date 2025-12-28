@@ -866,6 +866,7 @@ auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc
 
 // log
 
+#include "klib/c_string.hpp"
 #include "klib/log.hpp"
 
 namespace klib {

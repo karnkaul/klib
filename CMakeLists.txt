@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 set(package_name klib)
-project(${package_name} VERSION "0.5.5")
+project(${package_name} VERSION "0.5.6")
 
 option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
 option(KLIB_INSTALL "Setup CMake install for klib" ON)

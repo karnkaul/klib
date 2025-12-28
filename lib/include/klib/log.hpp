@@ -1,9 +1,8 @@
 #pragma once
-#include "klib/c_string.hpp"
 #include "klib/constants.hpp"
+#include "klib/demangle.hpp"
 #include "klib/enum_array.hpp"
 #include "klib/escape_code.hpp"
-#include "klib/str_buf.hpp"
 #include <cstdint>
 #include <format>
 #include <optional>
@@ -127,6 +126,12 @@ class TaggedLogger {
 
   private:
 	std::string_view m_tag{};
+};
+
+template <typename Type>
+class TypedLogger : public TaggedLogger {
+  public:
+	explicit TypedLogger() : TaggedLogger(demangled_name<Type>()) {}
 };
 
 template <typename... Args>
