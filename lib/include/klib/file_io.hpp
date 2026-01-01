@@ -16,4 +16,6 @@ auto read_file_bytes_into(ContainerT& out, CString const path) -> bool {
 	file.read(static_cast<char*>(first), size);
 	return true;
 }
+
+[[nodiscard]] auto resolve_symlink(std::string_view path, int max_iters = 100) -> std::string;
 } // namespace klib
