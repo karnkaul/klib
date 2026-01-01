@@ -5,6 +5,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <mutex>
@@ -1428,3 +1429,27 @@ auto klib::demangled_name(std::type_info const& info) -> std::string {
 }
 
 #undef KLIB_USE_CXA_DEMANGLE
+
+// file_io
+
+#include "klib/file_io.hpp"
+
+namespace klib {
+namespace fs = std::filesystem;
+} // namespace klib
+
+auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> std::string {
+	auto real_path = fs::path{path};
+	auto err = std::error_code{};
+	for (auto iter = 0; iter < max_iters; ++iter) {
+		if (real_path.empty()) { return {}; }
+		if (fs::is_symlink(real_path, err)) {
+			real_path = fs::read_symlink(real_path, err);
+			if (err != std::errc{}) { return {}; }
+			continue;
+		}
+
+		return real_path.string();
+	}
+	return {};
+}
