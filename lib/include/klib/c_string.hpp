@@ -1,4 +1,5 @@
 #pragma once
+#include <format>
 #include <string>
 
 namespace klib {
@@ -29,3 +30,11 @@ class CString {
 	std::string_view m_str{""};
 };
 } // namespace klib
+
+template <>
+struct std::formatter<klib::CString> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(klib::CString const& str, FormatContext& fc) const {
+		return formatter<string_view>::format(str.as_view(), fc);
+	}
+};

@@ -9,5 +9,5 @@ namespace klib {
 
 template <>
 struct std::formatter<klib::Version> : klib::FormatParser {
-	static auto format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator;
+	static auto format(klib::Version const& version, format_context& fc) -> format_context::iterator;
 };
