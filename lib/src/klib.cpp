@@ -95,8 +95,8 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 #include "klib/from_chars.hpp"
 #include "klib/version_str.hpp"
 
-auto std::formatter<klib::Version>::format(klib::Version const& version, std::format_context& fc) -> std::format_context::iterator {
-	return std::format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
+auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc) -> format_context::iterator {
+	return format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
 }
 
 auto klib::to_version(std::string_view text) -> Version {
