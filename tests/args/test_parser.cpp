@@ -2,6 +2,7 @@
 #include "klib/unit_test.hpp"
 #include <args/parser.hpp>
 #include <array>
+#include <cstdlib>
 
 namespace {
 using namespace klib::args;
@@ -111,8 +112,8 @@ TEST(arg_parser_command) {
 	bool cmd_flag{};
 	std::string_view cmd_arg{};
 	auto const cmd_args = std::array{
-		named_flag(cmd_flag, "cmd-flag"),
-		positional_required(cmd_arg, "cmd-arg"),
+		named_flag(cmd_flag, "cmd-flag", "cmd-flag help text"),
+		positional_required(cmd_arg, "cmd-arg", "cmd-arg help text"),
 	};
 	bool app_flag{};
 	auto const app_args = std::array{
@@ -124,9 +125,9 @@ TEST(arg_parser_command) {
 		void printerr(std::string_view /*text*/) final {}
 	};
 	auto printer = NullPrinter{};
-	auto const app_info = ParseInfo{
+	auto app_info = ParseInfo{
 		.printer = &printer,
-		.flags = ParseFlag::PrintHelpOnMissingCommand,
+		.on_missing_command = ParseAction::PrintHelp,
 	};
 	auto parser = Parser{app_info, {}, cli_args};
 	auto result = parser.parse(app_args);
@@ -139,6 +140,21 @@ TEST(arg_parser_command) {
 	parser = Parser{app_info, {}, {}};
 	result = parser.parse(app_args);
 	EXPECT(result.early_return());
+	EXPECT(result.get_return_code() == EXIT_SUCCESS);
 	EXPECT(result.executed_builtin());
+
+	app_info.on_missing_command = ParseAction::Error;
+	parser = Parser{app_info, {}, {}};
+	result = parser.parse(app_args);
+	EXPECT(result.early_return());
+	EXPECT(result.early_return() != EXIT_SUCCESS);
+	EXPECT(!result.executed_builtin());
+
+	app_info.on_missing_command = ParseAction::Continue;
+	parser = Parser{app_info, {}, {}};
+	result = parser.parse(app_args);
+	EXPECT(!result.early_return());
+	EXPECT(!result.executed_builtin());
+	EXPECT(result.get_command_name().empty());
 }
 } // namespace

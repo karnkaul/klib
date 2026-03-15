@@ -5,14 +5,14 @@
 #include <string_view>
 
 namespace klib::args {
-enum class ParseFlag : std::int8_t {
+enum class ParseFlag : std::uint8_t {
 	None = 0,
 	/// \brief Omit printing default values of optional positional args.
 	OmitDefaultValues = 1 << 0,
-	/// \brief Print help on missing command instead of treating it as an error.
-	PrintHelpOnMissingCommand = 1 << 1,
 };
 constexpr auto enable_enum_bitops(ParseFlag /*unused*/) -> bool { return true; }
+
+enum class ParseAction : std::int8_t { PrintHelp, Error, Continue };
 
 struct ParseInfo {
 	/// \brief One liner app description.
@@ -25,6 +25,7 @@ struct ParseInfo {
 	IPrinter* printer{nullptr};
 
 	ParseFlag flags{ParseFlag::None};
+	ParseAction on_missing_command{ParseAction::PrintHelp};
 };
 
 struct ParseStringInfo {

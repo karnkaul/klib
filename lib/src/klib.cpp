@@ -1,9 +1,13 @@
+#include "klib/args/param.hpp"
+#include "klib/args/parse_result.hpp"
+#include "klib/assert.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -13,6 +17,7 @@
 #include <print>
 #include <ranges>
 #include <sstream>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -513,6 +518,15 @@ void append_option_list(std::ostream& out, std::size_t const width, std::span<Ar
 	if (version) { print_option("    --version", "print version text and exit"); }
 }
 
+void append_positional_list(std::ostream& out, std::size_t const width, std::span<Arg const> args) {
+	out << "\nARGUMENTS\n";
+	for (auto const& arg : args) {
+		auto const* positional = std::get_if<ParamPositional>(&arg.get_param());
+		if (!positional || positional->help_text.empty()) { continue; }
+		out << "  " << std::setw(int(width)) << positional->name << positional->help_text << "\n";
+	}
+}
+
 void append_command_list(std::ostream& out, std::size_t const width, std::span<Arg const> args) {
 	out << "\nCOMMANDS\n" << std::left;
 	for (auto const& arg : args) {
@@ -527,16 +541,22 @@ void append_help(std::ostream& out, ParseInfo const& info, Context const& contex
 
 	auto const has_version = !info.version.empty();
 	auto has_positionals = false;
+	auto positionals_width = 0uz;
 	auto has_options = false;
 	auto options_width = std::string_view{has_version ? "___--version" : "___--usage"}.size();
 	auto commands_width = std::size_t{};
 	for (auto const& arg : args) {
 		switch (arg.get_param().index()) {
-		case 0:
+		case 0: {
 			has_options = true;
 			options_width = std::max(options_width, std::get<ParamOption>(arg.get_param()).word.size() + 6);
 			break;
-		case 1: has_positionals = true; break;
+		}
+		case 1: {
+			has_positionals = true;
+			positionals_width = std::max(positionals_width, std::get<ParamPositional>(arg.get_param()).name.size());
+			break;
+		}
 		case 2: commands_width = std::max(commands_width, std::get<ParamCommand>(arg.get_param()).name.size()); break;
 		default: std::unreachable(); break;
 		}
@@ -560,6 +580,7 @@ void append_help(std::ostream& out, ParseInfo const& info, Context const& contex
 	out << ">\n" << std::left;
 
 	append_option_list(out, options_width + 4, args, has_version);
+	if (has_positionals) { append_positional_list(out, positionals_width + 4, args); }
 
 	if (has_commands) { append_command_list(out, commands_width + 4, args); }
 
@@ -794,11 +815,12 @@ auto Parser::usage_string() const -> std::string {
 
 auto Parser::check_required() -> ParseResult {
 	if (m_has_commands && m_cursor.cmd == nullptr) {
-		if ((m_info.flags & ParseFlag::PrintHelpOnMissingCommand) == ParseFlag::PrintHelpOnMissingCommand) {
-			m_info.printer->println(help_string());
-			return ExecutedBuiltin{};
+		switch (m_info.on_missing_command) {
+		default: KLIB_ASSERT(false); break;
+		case ParseAction::PrintHelp: m_info.printer->println(help_string()); return ExecutedBuiltin{};
+		case ParseAction::Error: return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command");
+		case ParseAction::Continue: break;
 		}
-		return ErrorPrinter{*m_info.printer, m_exe_name}.missing_argument("command");
 	}
 
 	for (auto const* p = next_positional(); p != nullptr; p = next_positional()) {
