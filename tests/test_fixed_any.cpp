@@ -7,7 +7,7 @@
 namespace {
 using namespace klib;
 
-TEST(fixed_any_literals) {
+TEST_CASE(fixed_any_literals) {
 	auto x = FixedAny{};
 	x = 42;
 	ASSERT(x.contains<int>());
@@ -18,7 +18,7 @@ TEST(fixed_any_literals) {
 	EXPECT(x.get<char>() == 'c');
 }
 
-TEST(fixed_any_classes) {
+TEST_CASE(fixed_any_classes) {
 	static constexpr auto size_v = sizeof(LargestOf<std::string, std::vector<int>>);
 	auto x = FixedAny<size_v>{};
 	x = std::string{"foo"};

@@ -10,7 +10,7 @@ using namespace klib;
 
 struct LogTestType {};
 
-TEST(log) {
+TEST_CASE(log) {
 	static constexpr CString filename_v{"test.log"};
 
 	auto const logger = TypedLogger<LogTestType>{};

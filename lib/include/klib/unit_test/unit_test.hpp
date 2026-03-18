@@ -29,7 +29,7 @@ auto run_tests() -> int;
 #define EXPECT(pred) klib::test::check_expect(bool(pred), #pred, __FILE__, __LINE__) // NOLINT(cppcoreguidelines-macro-usage)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TEST(name)                                                                                                                                             \
+#define TEST_CASE(name)                                                                                                                                        \
 	struct TestCase_##name : klib::test::TestCase {                                                                                                            \
 		using TestCase::TestCase;                                                                                                                              \
 		void run() const final;                                                                                                                                \

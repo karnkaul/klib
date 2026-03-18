@@ -5,7 +5,7 @@
 namespace {
 enum class Foo : std::int8_t { Alpha, Beta, Gamma };
 
-TEST(enum_name) {
+TEST_CASE(enum_name) {
 	auto const foo_name_map = klib::EnumNameMap<Foo>{
 		{Foo::Alpha, "alpha"},
 		{Foo::Beta, "beta"},

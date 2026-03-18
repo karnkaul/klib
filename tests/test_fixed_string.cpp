@@ -26,7 +26,7 @@ static_assert([] {
 	return str == "wo";
 }());
 
-TEST(fixed_string_format) {
+TEST_CASE(fixed_string_format) {
 	auto str = FixedString{"{}", 42};
 	EXPECT(str == "42");
 	str += FixedString<8>{" {}", -1};

@@ -7,7 +7,7 @@
 namespace {
 using namespace klib::args;
 
-TEST(arg_flag) {
+TEST_CASE(arg_flag) {
 	bool flag{};
 	auto const arg = named_flag(flag, "f,flag");
 	auto const& param = arg.get_param();
@@ -21,7 +21,7 @@ TEST(arg_flag) {
 	EXPECT(flag == true);
 }
 
-TEST(arg_option_number) {
+TEST_CASE(arg_option_number) {
 	int x{};
 	auto arg = named_option(x, "x");
 	auto param = arg.get_param();
@@ -49,7 +49,7 @@ TEST(arg_option_number) {
 	EXPECT(!Assigner{"abc"}(option));
 }
 
-TEST(arg_positional_number) {
+TEST_CASE(arg_positional_number) {
 	int x{};
 	auto arg = positional_required(x, "x");
 	auto param = arg.get_param();
@@ -75,7 +75,7 @@ TEST(arg_positional_number) {
 	EXPECT(!was_set);
 }
 
-TEST(arg_string) {
+TEST_CASE(arg_string) {
 	std::string_view foo{};
 	auto arg = named_option(foo, "foo");
 	auto param = arg.get_param();
@@ -99,7 +99,7 @@ TEST(arg_string) {
 	EXPECT(was_set);
 }
 
-TEST(arg_positional_list) {
+TEST_CASE(arg_positional_list) {
 	auto foo = std::vector<int>{};
 	auto arg = positional_list(foo, "foo");
 	auto param = arg.get_param();
@@ -115,7 +115,7 @@ TEST(arg_positional_list) {
 	EXPECT(foo[0] == 1 && foo[1] == 2);
 }
 
-TEST(arg_command) {
+TEST_CASE(arg_command) {
 	struct CmdParams {
 		bool verbose{};
 		int number{};

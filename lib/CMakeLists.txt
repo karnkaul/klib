@@ -39,6 +39,7 @@ target_sources(${package_name} PUBLIC FILE_SET HEADERS
 
 target_sources(${package_name} PRIVATE
   src/klib.cpp
+  $<$<BOOL:${KLIB_UNIT_TEST}>:src/unit_test/unit_test.cpp>
 )
 
 if(KLIB_UNIT_TEST)

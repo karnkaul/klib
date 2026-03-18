@@ -12,7 +12,7 @@ struct Derived : Base {};
 } // namespace test
 
 namespace {
-TEST(demangle) {
+TEST_CASE(demangle) {
 	auto name = klib::demangled_name<klib::CString>();
 	EXPECT(name == "klib::CString");
 
