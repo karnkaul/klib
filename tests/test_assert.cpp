@@ -1,6 +1,6 @@
-#include "klib/assert.hpp"
 #include "klib/constants.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/debug/assert.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace {
 TEST(assert) {

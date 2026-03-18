@@ -1,6 +1,6 @@
 #include "klib/args/param.hpp"
 #include "klib/args/parse_result.hpp"
-#include "klib/assert.hpp"
+#include "klib/debug/assert.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -39,7 +39,7 @@ namespace chr = std::chrono;
 
 // unit test
 
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace klib {
 namespace {
@@ -114,7 +114,7 @@ auto klib::to_version(std::string_view text) -> Version {
 
 // task
 
-#include <klib/task/queue.hpp>
+#include "klib/task/queue.hpp"
 
 namespace klib {
 namespace task {
@@ -332,9 +332,9 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // args
 
+#include "klib/args/parse.hpp"
 #include <args/assigner.hpp>
 #include <args/parser.hpp>
-#include <klib/args/parse.hpp>
 
 namespace klib {
 namespace args {
@@ -1063,9 +1063,9 @@ void log::print(Input const& input) {
 }
 } // namespace klib
 
-// debug_trap
+// debug/trap
 
-#include "klib/debug_trap.hpp"
+#include "klib/debug/trap.hpp"
 
 namespace {
 // https://gcc.gnu.org/pipermail/libstdc++/2025-May/061246.html
@@ -1117,7 +1117,7 @@ auto klib::is_debugger_attached() -> bool {
 
 // assert
 
-#include "klib/assert.hpp"
+#include "klib/debug/assert.hpp"
 
 namespace klib {
 namespace assertion {

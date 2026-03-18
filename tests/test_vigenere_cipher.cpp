@@ -1,4 +1,4 @@
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include "klib/vigenere_cipher.hpp"
 
 namespace {

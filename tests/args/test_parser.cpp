@@ -1,5 +1,5 @@
 #include "klib/args/parse_info.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include <args/parser.hpp>
 #include <array>
 #include <cstdlib>

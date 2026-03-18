@@ -1,5 +1,5 @@
-#include "klib/enum_name.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/enum/name.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include <cstdint>
 
 namespace {

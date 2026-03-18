@@ -1,6 +1,6 @@
 #include "klib/c_string.hpp"
 #include "klib/log.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include <filesystem>
 #include <fstream>
 #include <print>
