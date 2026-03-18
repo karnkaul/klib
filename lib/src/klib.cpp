@@ -1357,6 +1357,13 @@ auto env::exe_path() -> std::string const& {
 	}();
 	return ret;
 }
+
+auto env::get_var(CString const key) -> CString {
+	if (key.as_view().empty()) { return {}; }
+	// NOLINTNEXTLINE(concurrency-mt-unsafe)
+	return std::getenv(key.c_str());
+}
+
 } // namespace klib
 
 // demangle
