@@ -1,9 +1,10 @@
 #include "klib/enum/array.hpp"
+#include <cstdint>
 
 namespace {
 using namespace klib;
 
-enum class Foo : int { Zero, One, Two, COUNT_ };
+enum class Foo : std::int8_t { Zero, One, Two, COUNT_ };
 
 constexpr auto foo_v = EnumArray<Foo, int>{0, 1, 2};
 static_assert(foo_v[Foo::Zero] == 0 && foo_v[Foo::One] == 1 && foo_v[Foo::Two] == 2);
