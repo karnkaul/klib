@@ -97,7 +97,7 @@ TestCase::TestCase(std::string_view const name) : name(name) { State::self().tes
 
 // version
 
-#include "klib/from_chars.hpp"
+#include "klib/string/from_chars.hpp"
 #include "klib/version.hpp"
 
 auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc) -> format_context::iterator {
@@ -889,8 +889,8 @@ auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc
 
 // log
 
-#include "klib/c_string.hpp"
 #include "klib/log.hpp"
+#include "klib/string/c_string.hpp"
 
 namespace klib {
 namespace log {

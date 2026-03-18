@@ -12,7 +12,7 @@
 - [x] [`enum/flags.hpp`](lib/include/klib/enum/flags.hpp)
 - [x] [`enum/bitops.hpp`](lib/include/klib/enum/bitops.hpp)
 - [x] [`fixed_any.hpp`](lib/include/klib/fixed_any.hpp)
-- [x] [`fixed_string.hpp`](lib/include/klib/fixed_string.hpp)
+- [x] [`string/fixed_string.hpp`](lib/include/klib/string/fixed_string.hpp)
 - [x] [`log.hpp`](lib/include/klib/log.hpp)
 - [x] [`task/*`](lib/include/klib/task/)
 - [x] [`text_table.hpp`](lib/include/klib/text_table.hpp)
