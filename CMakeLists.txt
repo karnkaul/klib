@@ -4,7 +4,8 @@ set(package_name klib)
 project(${package_name} VERSION "0.6.1")
 
 option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
-option(KLIB_INSTALL "Setup CMake install for klib" ON)
+option(KLIB_UNIT_TEST "Enable klib unit test API" ${PROJECT_IS_TOP_LEVEL})
+option(KLIB_INSTALL "Setup CMake install for klib" ${PROJECT_IS_TOP_LEVEL})
 
 option(KLIB_BUILD_TESTS "Build klib tests" ${PROJECT_IS_TOP_LEVEL})
 
@@ -22,6 +23,16 @@ function(klib_set_mainCRTStartup TARGET)
   endif()
 endfunction()
 
+if(NOT KLIB_UNIT_TEST AND KLIB_BUILD_TESTS)
+  message(WARNING "[klib] cannot build tests without unit test API")
+  set(KLIB_BUILD_TESTS OFF)
+endif()
+
+if(NOT KLIB_UNIT_TEST AND KLIB_INSTALL)
+  message(WARNING "[klib] cannot install without unit test API")
+  set(KLIB_INSTALL OFF)
+endif()
+
 add_subdirectory(lib)
 
 if(KLIB_INSTALL)
@@ -31,7 +42,7 @@ if(KLIB_INSTALL)
   set(install_dst "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
 
   install(
-    TARGETS ${package_name}
+    TARGETS ${package_name} ${package_name}-test-main
     EXPORT ${package_name}-targets
     FILE_SET HEADERS
   )

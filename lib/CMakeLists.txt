@@ -41,13 +41,15 @@ target_sources(${package_name} PRIVATE
   src/klib.cpp
 )
 
-add_library(${package_name}-test-main)
-add_library(${package_name}::${package_name}-test-main ALIAS ${package_name}-test-main)
+if(KLIB_UNIT_TEST)
+  add_library(${package_name}-test-main)
+  add_library(${package_name}::${package_name}-test-main ALIAS ${package_name}-test-main)
 
-target_link_libraries(${package_name}-test-main PUBLIC
-  ${package_name}::${package_name}
-)
+  target_link_libraries(${package_name}-test-main PUBLIC
+    ${package_name}::${package_name}
+  )
 
-target_sources(${package_name}-test-main PRIVATE
-  src/klib_test_main.cpp
-)
+  target_sources(${package_name}-test-main PRIVATE
+    src/unit_test/klib_test_main.cpp
+  )
+endif()
