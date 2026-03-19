@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 namespace klib::task {
-enum class Status : int { None, Queued, Dropped, Executing, Completed };
+enum class Status : std::int8_t { None, Queued, Dropped, Executing, Completed };
 } // namespace klib::task
