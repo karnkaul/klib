@@ -1360,8 +1360,15 @@ auto env::exe_path() -> std::string const& {
 
 auto env::get_var(CString const key) -> CString {
 	if (key.as_view().empty()) { return {}; }
+#if _WIN32 && __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	// NOLINTNEXTLINE(concurrency-mt-unsafe)
 	return std::getenv(key.c_str());
+#if _WIN32 && __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 } // namespace klib
