@@ -4,7 +4,7 @@
 
 namespace klib::task {
 enum struct ThreadCount : std::uint8_t { Minimum = 1 };
-enum struct ElementCount : std::size_t { Unbounded = 0 };
+enum struct ElementCount : std::size_t { Unbounded = 0 }; // NOLINT(performance-enum-size)
 
 [[nodiscard]] auto get_max_threads() -> ThreadCount;
 

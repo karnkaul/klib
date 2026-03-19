@@ -1,4 +1,5 @@
 #pragma once
+#include "klib/args/arg.hpp"
 #include "klib/args/parse_info.hpp"
 #include "klib/args/parse_result.hpp"
 #include <args/scanner.hpp>

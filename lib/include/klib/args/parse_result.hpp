@@ -1,8 +1,8 @@
 #pragma once
-#include "klib/args/arg.hpp"
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <string_view>
 
 namespace klib::args {
 /// \brief Error parsing passed arguments.
