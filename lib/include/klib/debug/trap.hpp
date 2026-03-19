@@ -3,7 +3,7 @@
 #if defined(_MSC_VER) || defined(__MINGW64__)
 #define KLIB_EXEC_DEBUG_TRAP() __debugbreak()
 #elif __has_builtin(__builtin_debug_trap)
-#define KLIB_EXEC_DEBUG_TRAP() __builtin_debug_trap()
+#define KLIB_EXEC_DEBUG_TRAP() __builtin_debug / trap()
 #elif __has_include(<csignal>)
 #include <csignal>
 #define KLIB_EXEC_DEBUG_TRAP() std::raise(SIGTRAP)

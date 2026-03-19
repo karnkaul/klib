@@ -1,8 +1,8 @@
 #pragma once
 #include "klib/constants.hpp"
 #include "klib/demangle.hpp"
-#include "klib/enum_array.hpp"
-#include "klib/escape_code.hpp"
+#include "klib/enum/array.hpp"
+#include "klib/string/escape_code.hpp"
 #include <cstdint>
 #include <format>
 #include <optional>

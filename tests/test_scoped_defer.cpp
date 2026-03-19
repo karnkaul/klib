@@ -1,9 +1,9 @@
 #include "klib/scoped_defer.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace {
 using namespace klib;
-TEST(scoped_defer_exec) {
+TEST_CASE(scoped_defer_exec) {
 	auto value = 0;
 	{
 		value = 1;
@@ -13,7 +13,7 @@ TEST(scoped_defer_exec) {
 	EXPECT(value == 42);
 }
 
-TEST(scoped_defer_move) {
+TEST_CASE(scoped_defer_move) {
 	auto value = 0;
 	{
 		auto to42 = ScopedDefer{};

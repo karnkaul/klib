@@ -1,6 +1,6 @@
-#include "klib/c_string.hpp"
 #include "klib/demangle.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/string/c_string.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace test {
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
@@ -12,7 +12,7 @@ struct Derived : Base {};
 } // namespace test
 
 namespace {
-TEST(demangle) {
+TEST_CASE(demangle) {
 	auto name = klib::demangled_name<klib::CString>();
 	EXPECT(name == "klib::CString");
 

@@ -1,6 +1,6 @@
-#include "klib/c_string.hpp"
 #include "klib/log.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/string/c_string.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include <filesystem>
 #include <fstream>
 #include <print>
@@ -10,7 +10,7 @@ using namespace klib;
 
 struct LogTestType {};
 
-TEST(log) {
+TEST_CASE(log) {
 	static constexpr CString filename_v{"test.log"};
 
 	auto const logger = TypedLogger<LogTestType>{};

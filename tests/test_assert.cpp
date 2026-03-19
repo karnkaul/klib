@@ -1,9 +1,9 @@
-#include "klib/assert.hpp"
 #include "klib/constants.hpp"
-#include "klib/unit_test.hpp"
+#include "klib/debug/assert.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace {
-TEST(assert) {
+TEST_CASE(assert) {
 	[[maybe_unused]] static constexpr int value_v{42};
 	auto thrown = false;
 	try {

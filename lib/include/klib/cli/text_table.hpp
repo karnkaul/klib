@@ -1,11 +1,12 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
 namespace klib {
 class TextTable {
   public:
-	enum class Align : int { Left, Center, Right };
+	enum class Align : std::int8_t { Left, Center, Right };
 
 	class Builder;
 

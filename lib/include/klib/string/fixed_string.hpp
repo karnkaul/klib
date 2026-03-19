@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/str_buf.hpp"
+#include "klib/string/str_buf.hpp"
 #include <format>
 
 namespace klib {

@@ -1,6 +1,6 @@
 #include "klib/args/param.hpp"
 #include "klib/args/parse_result.hpp"
-#include "klib/assert.hpp"
+#include "klib/debug/assert.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -37,68 +37,10 @@
 
 namespace chr = std::chrono;
 
-// unit test
-
-#include "klib/unit_test.hpp"
-
-namespace klib {
-namespace {
-struct Assert {};
-
-struct State {
-	std::vector<test::TestCase*> tests{};
-	bool failure{};
-
-	static auto self() -> State& {
-		static auto ret = State{};
-		return ret;
-	}
-};
-
-void check_failed(std::string_view const type, std::string_view const expr, std::string_view const file, int const line) {
-	std::println(stderr, "{} failed: '{}' [{}:{}]", type, expr, file, line);
-	State::self().failure = true;
-}
-} // namespace
-
-void test::check_expect(bool const pred, std::string_view const expr, std::string_view const file, int const line) {
-	if (pred) { return; }
-	check_failed("expectation", expr, file, line);
-}
-
-void test::check_assert(bool const pred, std::string_view const expr, std::string_view const file, int const line) {
-	if (pred) { return; }
-	check_failed("assertion", expr, file, line);
-	throw Assert{};
-}
-
-auto test::run_tests() -> int {
-	auto& state = State::self();
-	for (auto* test : state.tests) {
-		try {
-			std::println("[{}]", test->name);
-			test->run();
-		} catch (Assert const& /*a*/) {}
-	}
-
-	if (state.failure) {
-		std::println("FAILED");
-		return EXIT_FAILURE;
-	}
-
-	std::println("passed");
-	return EXIT_SUCCESS;
-}
-
-namespace test {
-TestCase::TestCase(std::string_view const name) : name(name) { State::self().tests.push_back(this); }
-} // namespace test
-} // namespace klib
-
 // version
 
-#include "klib/from_chars.hpp"
-#include "klib/version_str.hpp"
+#include "klib/string/from_chars.hpp"
+#include "klib/version.hpp"
 
 auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc) -> format_context::iterator {
 	return format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
@@ -114,7 +56,7 @@ auto klib::to_version(std::string_view text) -> Version {
 
 // task
 
-#include <klib/task/queue.hpp>
+#include "klib/task/queue.hpp"
 
 namespace klib {
 namespace task {
@@ -332,9 +274,9 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // args
 
+#include "klib/args/parse.hpp"
 #include <args/assigner.hpp>
 #include <args/parser.hpp>
-#include <klib/args/parse.hpp>
 
 namespace klib {
 namespace args {
@@ -889,8 +831,8 @@ auto args::parse_main(ParseInfo const& info, std::span<Arg const> args, int argc
 
 // log
 
-#include "klib/c_string.hpp"
 #include "klib/log.hpp"
+#include "klib/string/c_string.hpp"
 
 namespace klib {
 namespace log {
@@ -1063,9 +1005,9 @@ void log::print(Input const& input) {
 }
 } // namespace klib
 
-// debug_trap
+// debug/trap
 
-#include "klib/debug_trap.hpp"
+#include "klib/debug/trap.hpp"
 
 namespace {
 // https://gcc.gnu.org/pipermail/libstdc++/2025-May/061246.html
@@ -1117,7 +1059,7 @@ auto klib::is_debugger_attached() -> bool {
 
 // assert
 
-#include "klib/assert.hpp"
+#include "klib/debug/assert.hpp"
 
 namespace klib {
 namespace assertion {
@@ -1173,7 +1115,7 @@ void assertion::trigger_failure() {
 
 // text_table
 
-#include "klib/text_table.hpp"
+#include "klib/cli/text_table.hpp"
 
 namespace klib {
 void TextTable::push_row(std::vector<std::string> row) {
@@ -1351,7 +1293,7 @@ auto klib::vigenere_decrypt(std::string_view const key, std::string_view const i
 
 // escape_code
 
-#include "klib/escape_code.hpp"
+#include "klib/string/escape_code.hpp"
 
 namespace klib {
 namespace escape {
@@ -1415,6 +1357,20 @@ auto env::exe_path() -> std::string const& {
 	}();
 	return ret;
 }
+
+auto env::get_var(CString const key) -> CString {
+	if (key.as_view().empty()) { return {}; }
+#if _WIN32 && __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+	// NOLINTNEXTLINE(concurrency-mt-unsafe)
+	return std::getenv(key.c_str());
+#if _WIN32 && __clang__
+#pragma clang diagnostic pop
+#endif
+}
+
 } // namespace klib
 
 // demangle
@@ -1475,3 +1431,79 @@ auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> 
 	}
 	return {};
 }
+
+// cli::prompt
+
+#include "klib/cli/prompt.hpp"
+#include "klib/debug/assert.hpp"
+#include <iostream>
+#include <print>
+#include <string_view>
+
+namespace klib {
+using prompt::Option;
+using prompt::Selection;
+
+auto prompt::line(std::string_view const message, std::move_only_function<bool(std::string)> pred) -> Selection {
+	static constexpr auto max_attempts_v{3};
+	auto line = std::string{};
+	for (auto attempt = 0; attempt < max_attempts_v; ++attempt) {
+		std::print("\n{}\n> ", message);
+		std::getline(std::cin, line);
+		std::println();
+		if (pred(std::move(line))) { return Selection::Line; }
+		std::println(stderr, "invalid input");
+	}
+	return Selection::Invalid;
+}
+
+auto prompt::confirm(std::string_view const message) -> Selection {
+	auto const msg = std::format("{} (y/N):", message);
+	auto input = std::string{};
+	auto const pred = [&](std::string in) {
+		if (in.empty() || in == "n" || in == "y") {
+			input = std::move(in);
+			return true;
+		}
+		return false;
+	};
+	auto const selection = line(msg, pred);
+	if (selection == Selection::Invalid) { return selection; }
+
+	KLIB_ASSERT(selection == Selection::Line);
+	if (input == "y") { return Selection::Confirm; }
+	return Selection::Exit;
+}
+
+auto prompt::options(std::span<Option const> options, bool const empty_is_exit) -> Selection {
+	auto message = std::string{};
+	auto number = 0;
+	for (auto const& option : options) { std::format_to(std::back_inserter(message), "{}) {}\n", ++number, option.text); }
+	message += "q) quit";
+
+	auto const pred = [&](std::string_view input) {
+		if (input.empty()) {
+			if (!empty_is_exit) { return false; }
+			input = "q";
+		}
+		if (input == "q") {
+			number = 0;
+			return true;
+		}
+		if (!FromChars{.text = input}(number)) { return false; }
+
+		return number >= 1 && number <= int(options.size());
+	};
+
+	auto const selection = line(message, pred);
+	if (selection == Selection::Invalid) { return selection; }
+
+	KLIB_ASSERT(selection == Selection::Line);
+	if (number == -1) { return Selection::Exit; }
+	KLIB_ASSERT(number > 0);
+	auto const index = std::size_t(number - 1);
+	auto const& option = options[index];
+	if (option.callback) { option.callback(); }
+	return Selection::Option;
+}
+} // namespace klib

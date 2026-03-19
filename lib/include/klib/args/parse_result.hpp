@@ -1,12 +1,12 @@
 #pragma once
-#include <klib/args/arg.hpp>
+#include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <string_view>
 
 namespace klib::args {
 /// \brief Error parsing passed arguments.
-// NOLINTNEXTLINE(performance-enum-size)
-enum class ParseError : int {
+enum class ParseError : std::int8_t {
 	InvalidCommand = 100,
 	InvalidOption,
 	InvalidArgument,

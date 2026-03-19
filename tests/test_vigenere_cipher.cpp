@@ -1,10 +1,10 @@
-#include "klib/unit_test.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include "klib/vigenere_cipher.hpp"
 
 namespace {
 using namespace klib;
 
-TEST(vigenere_round_trip) {
+TEST_CASE(vigenere_round_trip) {
 	static constexpr std::string_view key_v{"fubar"};
 	static constexpr std::string_view input_v{"Some ASCII text; with symbols!"};
 
@@ -13,7 +13,7 @@ TEST(vigenere_round_trip) {
 	EXPECT(decrypted == input_v);
 }
 
-TEST(vigenere_json) {
+TEST_CASE(vigenere_json) {
 	static constexpr std::string_view key_v{"@ut0g3n3[r4t3d"};
 	static constexpr std::string_view input_v = R"(
 {

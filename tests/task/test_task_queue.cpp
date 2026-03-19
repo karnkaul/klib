@@ -1,5 +1,5 @@
-#include "klib/unit_test.hpp"
-#include <klib/task/queue.hpp>
+#include "klib/task/queue.hpp"
+#include "klib/unit_test/unit_test.hpp"
 #include <array>
 #include <chrono>
 #include <random>
@@ -33,7 +33,7 @@ struct WaitTask : Task {
 	}
 };
 
-TEST(task_queue_drain_and_wait) {
+TEST_CASE(task_queue_drain_and_wait) {
 	auto queue = create_queue();
 	queue.pause();
 	static constexpr auto run_count_v = 3;
@@ -48,7 +48,7 @@ TEST(task_queue_drain_and_wait) {
 	queue.drain_and_wait(); // test empty_cv.lock() when queue is already empty
 }
 
-TEST(task_queue_drain_restart) {
+TEST_CASE(task_queue_drain_restart) {
 	auto queue = create_queue();
 	static constexpr auto run_count_v = 3;
 
@@ -70,7 +70,7 @@ TEST(task_queue_drain_restart) {
 	EXPECT(WaitTask::s_executed == 3);
 }
 
-TEST(task_queue_task_wait) {
+TEST_CASE(task_queue_task_wait) {
 	auto queue = create_queue();
 	queue.pause();
 	WaitTask::s_executed = 0;
@@ -87,7 +87,7 @@ TEST(task_queue_task_wait) {
 	EXPECT(queue.is_empty());
 }
 
-TEST(task_queue_task_drop) {
+TEST_CASE(task_queue_task_drop) {
 	auto queue = create_queue();
 	queue.pause();
 	WaitTask::s_executed = 0;
@@ -100,7 +100,7 @@ TEST(task_queue_task_drop) {
 	EXPECT(queue.is_empty());
 }
 
-TEST(task_queue_task_rerun) {
+TEST_CASE(task_queue_task_rerun) {
 	auto queue = create_queue();
 	queue.pause();
 	WaitTask::s_executed = 0;

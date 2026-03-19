@@ -16,7 +16,7 @@ struct SubVisitor : Ts... {
 };
 
 template <typename VariantT, typename... Ts>
-constexpr auto match(VariantT&& var, Ts&&... funcs) {
+constexpr auto match(VariantT&& var, Ts&&... funcs) -> decltype(auto) {
 	return std::visit(Visitor{std::forward<Ts>(funcs)...}, std::forward<VariantT>(var));
 }
 } // namespace klib
