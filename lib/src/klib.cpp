@@ -1499,7 +1499,7 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 	if (selection == Selection::Invalid) { return selection; }
 
 	KLIB_ASSERT(selection == Selection::Line);
-	if (number == -1) { return Selection::Exit; }
+	if (number == 0) { return Selection::Exit; }
 	KLIB_ASSERT(number > 0);
 	auto const index = std::size_t(number - 1);
 	auto const& option = options[index];
