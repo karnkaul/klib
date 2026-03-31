@@ -6,7 +6,6 @@
 
 ## Features
 
-- [x] [`args/*`](lib/include/klib/args/)
 - [x] [`byte_count.hpp`](lib/include/klib/byte_count.hpp)
 - [x] [`enum/array.hpp`](lib/include/klib/enum/array.hpp)
 - [x] [`enum/flags.hpp`](lib/include/klib/enum/flags.hpp)
