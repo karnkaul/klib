@@ -270,7 +270,8 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
-#include "klib/log.hpp"
+#include "klib/log/file.hpp"
+#include "klib/log/log.hpp"
 #include "klib/string/c_string.hpp"
 
 namespace klib {
