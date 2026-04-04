@@ -270,11 +270,12 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
+#include "detail/string/interpolate_impl.hpp"
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
-#include "klib/ptr.hpp"
 #include "klib/string/c_string.hpp"
 #include "klib/string/interpolator.hpp"
+#include "klib/visitor.hpp"
 
 namespace klib {
 namespace log {
@@ -333,7 +334,91 @@ struct FileImpl {
 	std::jthread m_thread{};
 };
 
+enum class Identifier : std::int8_t { Level, Tag, ThreadId, Message, Timestamp, FileName, LineNumber };
+
+class Formatter {
+  public:
+	void set_interpolate_format(std::string_view const fmt) {
+		m_atoms.clear();
+		using Token = detail::InterpolateToken;
+		auto scanner = detail::InterpolateScanner{fmt};
+		auto token = Token{};
+		while (scanner.scan_next(token)) {
+			switch (token.type) {
+			case Token::Type::Identifier: {
+				if (auto const identifier = to_identifier(token.lexeme)) { m_atoms.emplace_back(*identifier); }
+				break;
+			}
+			case Token::Type::String: m_atoms.emplace_back(std::string{token.lexeme}); break;
+			default: break;
+			}
+		}
+	}
+
+	[[nodiscard]] auto format(Input const& input) const -> std::string {
+		static constexpr auto reserve_v{128uz};
+		auto ret = std::string{};
+		ret.reserve(input.message.size() + reserve_v);
+		auto const visitor = Visitor{
+			[&](std::string_view const s) { ret.append(s); },
+			[&](Identifier const ft) { format_identifier(ret, input, ft); },
+		};
+		for (auto const& atom : m_atoms) { std::visit(visitor, atom); }
+		return ret;
+	}
+
+  private:
+	using Atom = std::variant<std::string, Identifier>;
+
+	static constexpr std::string_view level_v{"level"};
+	static constexpr std::string_view tag_v{"tag"};
+	static constexpr std::string_view thread_id_v{"thread_id"};
+	static constexpr std::string_view message_v{"message"};
+	static constexpr std::string_view timestamp_v{"timestamp"};
+	static constexpr std::string_view file_name_v{"file_name"};
+	static constexpr std::string_view line_number_v{"line_number"};
+
+	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> std::optional<Identifier> {
+		if (word == level_v) { return Identifier::Level; }
+		if (word == tag_v) { return Identifier::Tag; }
+		if (word == thread_id_v) { return Identifier::ThreadId; }
+		if (word == message_v) { return Identifier::Message; }
+		if (word == timestamp_v) { return Identifier::Timestamp; }
+		if (word == file_name_v) { return Identifier::FileName; }
+		if (word == line_number_v) { return Identifier::LineNumber; }
+		return {};
+	}
+
+	static void format_identifier(std::string& out, Input const& input, Identifier const identifier) {
+		switch (identifier) {
+		case Identifier::Level: out += level_to_char[input.level]; break;
+		case Identifier::Tag: out.append(input.tag); break;
+		case Identifier::ThreadId: {
+			auto const thread_id = std::to_underlying(get_thread_id());
+			std::format_to(std::back_inserter(out), "{:02}", thread_id);
+			break;
+		}
+		case Identifier::Message: out.append(input.message); break;
+		case Identifier::Timestamp: {
+			auto const timestamp = chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
+			std::format_to(std::back_inserter(out), "{:%T}", timestamp);
+			break;
+		}
+		case Identifier::FileName: out.append(to_filename(input.file_name)); break;
+		case Identifier::LineNumber: std::format_to(std::back_inserter(out), "{}", input.line_number); break;
+		default: break;
+		}
+	}
+
+	std::vector<Atom> m_atoms{};
+};
+
 struct Storage {
+	explicit Storage() {
+		auto const _ = get_thread_id();
+		m_formatter.set_interpolate_format(interpolate_format_v);
+	}
+
 	auto attach_file(std::string path) -> bool {
 		auto lock = std::scoped_lock{m_mutex};
 		return m_file.start(std::move(path));
@@ -359,14 +444,14 @@ struct Storage {
 		return m_colors;
 	}
 
-	void set_interpolate_format(std::string interpolate_format) {
+	void set_interpolate_format(std::string_view const interpolate_format) {
 		auto lock = std::scoped_lock{m_mutex};
-		m_interpolate_format = std::move(interpolate_format);
+		m_formatter.set_interpolate_format(interpolate_format);
 	}
 
-	[[nodiscard]] auto get_interpolate_format() const -> std::string_view {
+	[[nodiscard]] auto format(Input const& input) const -> std::string {
 		auto lock = std::scoped_lock{m_mutex};
-		return m_interpolate_format;
+		return m_formatter.format(input);
 	}
 
 	void print_to_file(CString const line) {
@@ -380,66 +465,9 @@ struct Storage {
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
 	std::optional<Colors> m_colors{colors_v};
-	std::string m_interpolate_format{interpolate_format_v};
+	Formatter m_formatter{};
 };
 
-class Interpolator : public StringInterpolator {
-  public:
-	explicit Interpolator(Input const& input) : m_input(&input) {}
-
-  private:
-	static constexpr std::string_view level_v{"level"};
-	static constexpr std::string_view tag_v{"tag"};
-	static constexpr std::string_view thread_id_v{"thread_id"};
-	static constexpr std::string_view message_v{"message"};
-	static constexpr std::string_view timestamp_v{"timestamp"};
-	static constexpr std::string_view file_name_v{"file_name"};
-	static constexpr std::string_view line_number_v{"line_number"};
-
-	void format_value_to(std::string& out, std::string_view identifier) const final {
-		if (identifier == level_v) {
-			out += level_to_char[m_input->level];
-			return;
-		}
-
-		if (identifier == tag_v) {
-			out.append(m_input->tag);
-			return;
-		}
-
-		if (identifier == thread_id_v) {
-			auto const thread_id = std::underlying_type_t<ThreadId>(get_thread_id());
-			std::format_to(std::back_inserter(out), "{:02}", thread_id);
-			return;
-		}
-
-		if (identifier == message_v) {
-			out.append(m_input->message);
-			return;
-		}
-
-		if (identifier == timestamp_v) {
-			auto const timestamp = chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
-			std::format_to(std::back_inserter(out), "{:%T}", timestamp);
-			return;
-		}
-
-		if (identifier == file_name_v) {
-			out.append(to_filename(m_input->file_name));
-			return;
-		}
-
-		if (identifier == line_number_v) {
-			std::format_to(std::back_inserter(out), "{}", m_input->line_number);
-			return;
-		}
-	}
-
-	void format_level(std::string& out) { out += level_to_char[m_input->level]; }
-	void format_tag(std::string& out) { out.append(m_input->tag); }
-
-	Ptr<Input const> m_input{};
-};
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace
 
@@ -459,8 +487,7 @@ auto log::get_max_level() -> Level { return g_storage.max_level; }
 void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
 auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
-void log::set_interpolate_format(std::string interpolate_format) { g_storage.set_interpolate_format(std::move(interpolate_format)); }
-auto log::get_interpolate_format() -> std::string_view { return g_storage.get_interpolate_format(); }
+void log::set_interpolate_format(std::string_view const interpolate_format) { g_storage.set_interpolate_format(interpolate_format); }
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
@@ -469,14 +496,7 @@ auto log::get_thread_id() -> ThreadId {
 }
 
 auto log::format(Input const& input) -> std::string {
-	static constexpr auto reserve_v{128uz};
-	auto ret = std::string{};
-	ret.reserve(input.message.size() + reserve_v);
-
-	auto const interpolate_format = get_interpolate_format();
-	auto const interpolator = Interpolator{input};
-	interpolator.interpolate_to(ret, interpolate_format);
-
+	auto ret = g_storage.format(input);
 	ret.append("\n");
 	return ret;
 }
@@ -1016,7 +1036,6 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 
 // string/interpolator
 
-#include "detail/string/interpolate_impl.hpp"
 #include "klib/string/interpolator.hpp"
 
 namespace klib {
