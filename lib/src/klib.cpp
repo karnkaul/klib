@@ -489,7 +489,7 @@ void log::print(Input const& input) {
 	auto* out = input.level == Level::Error ? stderr : stdout;
 	auto const do_print = [&](std::optional<escape::Rgb> const rgb) {
 		if (!rgb) {
-			std::print("{}", text);
+			std::print(out, "{}", text);
 			return;
 		}
 		auto const fg = escape::foreground(*rgb);
