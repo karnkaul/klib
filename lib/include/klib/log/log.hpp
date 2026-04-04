@@ -1,6 +1,5 @@
 #pragma once
 #include "klib/constants.hpp"
-#include "klib/demangle.hpp"
 #include "klib/enum/array.hpp"
 #include "klib/string/escape_code.hpp"
 #include <cstdint>
@@ -8,6 +7,7 @@
 #include <optional>
 #include <source_location>
 #include <string>
+#include <string_view>
 
 namespace klib {
 namespace log {
@@ -70,69 +70,24 @@ struct Input {
 	std::uint64_t line_number{};
 };
 
+constexpr auto debug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}] [{file_name}:{line_number}]"};
+constexpr auto ndebug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}]"};
+constexpr auto interpolate_format_v = debug_v ? debug_interpolate_format_v : ndebug_interpolate_format_v;
+
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
 void set_colors(std::optional<Colors> const& colors);
 [[nodiscard]] auto get_colors() -> std::optional<Colors>;
 
+void set_interpolate_format(std::string interpolate_format);
+[[nodiscard]] auto get_interpolate_format() -> std::string_view;
+
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 
 [[nodiscard]] auto format(Input const& input) -> std::string;
 void print(Input const& input);
-
-class File {
-  public:
-	File(File const&) = delete;
-	File(File&&) = delete;
-	auto operator=(File const&) = delete;
-	auto operator=(File&&) = delete;
-
-	explicit File(std::string path = "debug.log");
-	~File();
-
-	[[nodiscard]] auto is_attached() const -> bool;
-	[[nodiscard]] auto get_path() const -> std::string_view { return m_path; }
-
-  private:
-	std::string m_path;
-};
 } // namespace log
-
-class TaggedLogger {
-  public:
-	explicit TaggedLogger(std::string_view const tag) : m_tag(tag) {}
-
-	template <typename... Args>
-	void error(log::Fmt<Args...> const& fmt, Args&&... args) const {
-		log::error(m_tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void warn(log::Fmt<Args...> const& fmt, Args&&... args) const {
-		log::warn(m_tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void info(log::Fmt<Args...> const& fmt, Args&&... args) const {
-		log::info(m_tag, fmt, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void debug(log::Fmt<Args...> const& fmt, Args&&... args) const {
-		if constexpr (!log::debug_enabled_v) { return; }
-		log::debug(m_tag, fmt, std::forward<Args>(args)...);
-	}
-
-  private:
-	std::string_view m_tag{};
-};
-
-template <typename Type>
-class TypedLogger : public TaggedLogger {
-  public:
-	explicit TypedLogger() : TaggedLogger(demangled_name<Type>()) {}
-};
 
 template <typename... Args>
 void log::print(Level const level, std::string_view const tag, Fmt<Args...> const& fmt, Args&&... args) {

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 set(package_name klib)
-project(${package_name} VERSION "0.6.2")
+project(${package_name} VERSION "0.6.3")
 
 option(KLIB_USE_STACKTRACE "Enable use of std::stacktrace" ON)
 option(KLIB_UNIT_TEST "Enable klib unit test API" ${PROJECT_IS_TOP_LEVEL})
