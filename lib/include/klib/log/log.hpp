@@ -7,6 +7,7 @@
 #include <optional>
 #include <source_location>
 #include <string>
+#include <string_view>
 
 namespace klib {
 namespace log {
@@ -69,11 +70,18 @@ struct Input {
 	std::uint64_t line_number{};
 };
 
+constexpr auto debug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}] [{file_name}:{line_number}]"};
+constexpr auto ndebug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}]"};
+constexpr auto interpolate_format_v = debug_v ? debug_interpolate_format_v : ndebug_interpolate_format_v;
+
 void set_max_level(Level level);
 [[nodiscard]] auto get_max_level() -> Level;
 
 void set_colors(std::optional<Colors> const& colors);
 [[nodiscard]] auto get_colors() -> std::optional<Colors>;
+
+void set_interpolate_format(std::string interpolate_format);
+[[nodiscard]] auto get_interpolate_format() -> std::string_view;
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 

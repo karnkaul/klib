@@ -272,7 +272,9 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
+#include "klib/ptr.hpp"
 #include "klib/string/c_string.hpp"
+#include "klib/string/interpolator.hpp"
 
 namespace klib {
 namespace log {
@@ -357,6 +359,16 @@ struct Storage {
 		return m_colors;
 	}
 
+	void set_interpolate_format(std::string interpolate_format) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_interpolate_format = std::move(interpolate_format);
+	}
+
+	[[nodiscard]] auto get_interpolate_format() const -> std::string_view {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_interpolate_format;
+	}
+
 	void print_to_file(CString const line) {
 		auto lock = std::scoped_lock{m_mutex};
 		m_file.print(line);
@@ -368,8 +380,66 @@ struct Storage {
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
 	std::optional<Colors> m_colors{colors_v};
+	std::string m_interpolate_format{interpolate_format_v};
 };
 
+class Interpolator : public StringInterpolator {
+  public:
+	explicit Interpolator(Input const& input) : m_input(&input) {}
+
+  private:
+	static constexpr std::string_view level_v{"level"};
+	static constexpr std::string_view tag_v{"tag"};
+	static constexpr std::string_view thread_id_v{"thread_id"};
+	static constexpr std::string_view message_v{"message"};
+	static constexpr std::string_view timestamp_v{"timestamp"};
+	static constexpr std::string_view file_name_v{"file_name"};
+	static constexpr std::string_view line_number_v{"line_number"};
+
+	void format_value_to(std::string& out, std::string_view identifier) const final {
+		if (identifier == level_v) {
+			out += level_to_char[m_input->level];
+			return;
+		}
+
+		if (identifier == tag_v) {
+			out.append(m_input->tag);
+			return;
+		}
+
+		if (identifier == thread_id_v) {
+			auto const thread_id = std::underlying_type_t<ThreadId>(get_thread_id());
+			std::format_to(std::back_inserter(out), "{:02}", thread_id);
+			return;
+		}
+
+		if (identifier == message_v) {
+			out.append(m_input->message);
+			return;
+		}
+
+		if (identifier == timestamp_v) {
+			auto const timestamp = chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
+			std::format_to(std::back_inserter(out), "{:%T}", timestamp);
+			return;
+		}
+
+		if (identifier == file_name_v) {
+			out.append(to_filename(m_input->file_name));
+			return;
+		}
+
+		if (identifier == line_number_v) {
+			std::format_to(std::back_inserter(out), "{}", m_input->line_number);
+			return;
+		}
+	}
+
+	void format_level(std::string& out) { out += level_to_char[m_input->level]; }
+	void format_tag(std::string& out) { out.append(m_input->tag); }
+
+	Ptr<Input const> m_input{};
+};
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace
 
@@ -389,6 +459,9 @@ auto log::get_max_level() -> Level { return g_storage.max_level; }
 void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
 auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
+void log::set_interpolate_format(std::string interpolate_format) { g_storage.set_interpolate_format(std::move(interpolate_format)); }
+auto log::get_interpolate_format() -> std::string_view { return g_storage.get_interpolate_format(); }
+
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
 	thread_local auto const ret = s_id++;
@@ -396,20 +469,13 @@ auto log::get_thread_id() -> ThreadId {
 }
 
 auto log::format(Input const& input) -> std::string {
-	// [L] [tag/TT] message [timestamp] [source]
-
-	static constexpr std::size_t reserve_v = debug_v ? 128 : 64;
+	static constexpr auto reserve_v{128uz};
 	auto ret = std::string{};
 	ret.reserve(input.message.size() + reserve_v);
 
-	auto const level = level_to_char[input.level];
-	auto const tid = std::underlying_type_t<ThreadId>(get_thread_id());
-	auto const now = chr::time_point_cast<chr::seconds>(chr::system_clock::now());
-	auto const timestamp = chr::zoned_time{chr::current_zone(), now};
-
-	std::format_to(std::back_inserter(ret), "[{}] [{}/{:02}] {} [{:%T}]", level, input.tag, tid, input.message, timestamp);
-
-	if constexpr (debug_v) { std::format_to(std::back_inserter(ret), " [{}:{}]", to_filename(input.file_name), input.line_number); }
+	auto const interpolate_format = get_interpolate_format();
+	auto const interpolator = Interpolator{input};
+	interpolator.interpolate_to(ret, interpolate_format);
 
 	ret.append("\n");
 	return ret;
