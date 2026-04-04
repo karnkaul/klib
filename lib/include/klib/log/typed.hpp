@@ -6,6 +6,6 @@ namespace klib::log {
 template <typename Type>
 class Typed : public Tagged {
   public:
-	explicit Typed() : Tagged(demangled_name<Type>()) {}
+	explicit Typed(Level max_level = Level::Debug) : Tagged(demangled_name<Type>(), max_level) {}
 };
 } // namespace klib::log
