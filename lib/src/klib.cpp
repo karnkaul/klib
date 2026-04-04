@@ -947,3 +947,24 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 	return Selection::Option;
 }
 } // namespace klib
+
+// string/interpolator
+
+#include "detail/string/interpolate_impl.hpp"
+#include "klib/string/interpolator.hpp"
+
+namespace klib {
+void StringInterpolator::interpolate_to(std::string& out, std::string_view input) const {
+	using Token = detail::InterpolateToken;
+
+	auto scanner = detail::InterpolateScanner{input};
+	auto token = Token{};
+	while (scanner.scan_next(token)) {
+		switch (token.type) {
+		case Token::Type::String: out.append(token.lexeme); break;
+		case Token::Type::Identifier: format_value_to(out, token.lexeme); break;
+		default: break;
+		}
+	}
+}
+} // namespace klib
