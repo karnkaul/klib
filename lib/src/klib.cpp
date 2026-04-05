@@ -270,11 +270,10 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
-#include "detail/string/interpolate_impl.hpp"
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
 #include "klib/string/c_string.hpp"
-#include "klib/string/interpolator.hpp"
+#include "klib/string/lerp_expr.hpp"
 #include "klib/visitor.hpp"
 
 namespace klib {
@@ -334,25 +333,13 @@ struct FileImpl {
 	std::jthread m_thread{};
 };
 
-enum class Identifier : std::int8_t { Level, Tag, ThreadId, Message, Timestamp, FileName, LineNumber };
+enum class Identifier : std::int8_t { None, Level, Tag, ThreadId, Message, Timestamp, FileName, LineNumber };
 
 class Formatter {
   public:
 	void set_interpolate_format(std::string_view const fmt) {
 		m_atoms.clear();
-		using Token = detail::InterpolateToken;
-		auto scanner = detail::InterpolateScanner{fmt};
-		auto token = Token{};
-		while (scanner.scan_next(token)) {
-			switch (token.type) {
-			case Token::Type::Identifier: {
-				if (auto const identifier = to_identifier(token.lexeme)) { m_atoms.emplace_back(*identifier); }
-				break;
-			}
-			case Token::Type::String: m_atoms.emplace_back(std::string{token.lexeme}); break;
-			default: break;
-			}
-		}
+		atomize_lerp_expr_to(m_atoms, fmt, &to_identifier);
 	}
 
 	[[nodiscard]] auto format(Input const& input) const -> std::string {
@@ -361,32 +348,24 @@ class Formatter {
 		ret.reserve(input.message.size() + reserve_v);
 		auto const visitor = Visitor{
 			[&](std::string_view const s) { ret.append(s); },
-			[&](Identifier const ft) { format_identifier(ret, input, ft); },
+			[&](Identifier const i) { format_identifier(ret, input, i); },
 		};
 		for (auto const& atom : m_atoms) { std::visit(visitor, atom); }
 		return ret;
 	}
 
   private:
-	using Atom = std::variant<std::string, Identifier>;
+	using Atom = klib::LerpExprAtom<Identifier>;
 
-	static constexpr std::string_view level_v{"level"};
-	static constexpr std::string_view tag_v{"tag"};
-	static constexpr std::string_view thread_id_v{"thread_id"};
-	static constexpr std::string_view message_v{"message"};
-	static constexpr std::string_view timestamp_v{"timestamp"};
-	static constexpr std::string_view file_name_v{"file_name"};
-	static constexpr std::string_view line_number_v{"line_number"};
-
-	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> std::optional<Identifier> {
-		if (word == level_v) { return Identifier::Level; }
-		if (word == tag_v) { return Identifier::Tag; }
-		if (word == thread_id_v) { return Identifier::ThreadId; }
-		if (word == message_v) { return Identifier::Message; }
-		if (word == timestamp_v) { return Identifier::Timestamp; }
-		if (word == file_name_v) { return Identifier::FileName; }
-		if (word == line_number_v) { return Identifier::LineNumber; }
-		return {};
+	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> Identifier {
+		if (word == "level") { return Identifier::Level; }
+		if (word == "tag") { return Identifier::Tag; }
+		if (word == "thread_id") { return Identifier::ThreadId; }
+		if (word == "message") { return Identifier::Message; }
+		if (word == "timestamp") { return Identifier::Timestamp; }
+		if (word == "file_name") { return Identifier::FileName; }
+		if (word == "line_number") { return Identifier::LineNumber; }
+		return Identifier::None;
 	}
 
 	static void format_identifier(std::string& out, Input const& input, Identifier const identifier) {
@@ -406,6 +385,8 @@ class Formatter {
 		}
 		case Identifier::FileName: out.append(to_filename(input.file_name)); break;
 		case Identifier::LineNumber: std::format_to(std::back_inserter(out), "{}", input.line_number); break;
+
+		case Identifier::None:
 		default: break;
 		}
 	}
@@ -1031,25 +1012,5 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 	auto const& option = options[index];
 	if (option.callback) { option.callback(); }
 	return Selection::Option;
-}
-} // namespace klib
-
-// string/interpolator
-
-#include "klib/string/interpolator.hpp"
-
-namespace klib {
-void StringInterpolator::interpolate_to(std::string& out, std::string_view input) const {
-	using Token = detail::InterpolateToken;
-
-	auto scanner = detail::InterpolateScanner{input};
-	auto token = Token{};
-	while (scanner.scan_next(token)) {
-		switch (token.type) {
-		case Token::Type::String: out.append(token.lexeme); break;
-		case Token::Type::Identifier: format_value_to(out, token.lexeme); break;
-		default: break;
-		}
-	}
 }
 } // namespace klib
