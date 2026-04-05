@@ -1,4 +1,5 @@
-#include "klib/log.hpp"
+#include "klib/log/file.hpp"
+#include "klib/log/typed.hpp"
 #include "klib/string/c_string.hpp"
 #include "klib/unit_test/unit_test.hpp"
 #include <filesystem>
@@ -13,7 +14,7 @@ struct LogTestType {};
 TEST_CASE(log) {
 	static constexpr CString filename_v{"test.log"};
 
-	auto const logger = TypedLogger<LogTestType>{};
+	auto const logger = log::Typed<LogTestType>{};
 	{
 		auto const file = log::File{filename_v.c_str()};
 		logger.info("expect in log file");

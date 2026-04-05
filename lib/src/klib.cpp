@@ -270,8 +270,11 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
-#include "klib/log.hpp"
+#include "klib/log/file.hpp"
+#include "klib/log/log.hpp"
 #include "klib/string/c_string.hpp"
+#include "klib/string/lerp_expr.hpp"
+#include "klib/visitor.hpp"
 
 namespace klib {
 namespace log {
@@ -330,7 +333,73 @@ struct FileImpl {
 	std::jthread m_thread{};
 };
 
+enum class Identifier : std::int8_t { None, Level, Tag, ThreadId, Message, Timestamp, FileName, LineNumber };
+
+class Formatter {
+  public:
+	void set_interpolate_format(std::string_view const fmt) {
+		m_atoms.clear();
+		atomize_lerp_expr_to(m_atoms, fmt, &to_identifier);
+	}
+
+	[[nodiscard]] auto format(Input const& input) const -> std::string {
+		static constexpr auto reserve_v{128uz};
+		auto ret = std::string{};
+		ret.reserve(input.message.size() + reserve_v);
+		auto const visitor = Visitor{
+			[&](std::string_view const s) { ret.append(s); },
+			[&](Identifier const i) { format_identifier(ret, input, i); },
+		};
+		for (auto const& atom : m_atoms) { std::visit(visitor, atom); }
+		return ret;
+	}
+
+  private:
+	using Atom = klib::LerpExprAtom<Identifier>;
+
+	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> Identifier {
+		if (word == "level") { return Identifier::Level; }
+		if (word == "tag") { return Identifier::Tag; }
+		if (word == "thread_id") { return Identifier::ThreadId; }
+		if (word == "message") { return Identifier::Message; }
+		if (word == "timestamp") { return Identifier::Timestamp; }
+		if (word == "file_name") { return Identifier::FileName; }
+		if (word == "line_number") { return Identifier::LineNumber; }
+		return Identifier::None;
+	}
+
+	static void format_identifier(std::string& out, Input const& input, Identifier const identifier) {
+		switch (identifier) {
+		case Identifier::Level: out += level_to_char[input.level]; break;
+		case Identifier::Tag: out.append(input.tag); break;
+		case Identifier::ThreadId: {
+			auto const thread_id = std::to_underlying(get_thread_id());
+			std::format_to(std::back_inserter(out), "{:02}", thread_id);
+			break;
+		}
+		case Identifier::Message: out.append(input.message); break;
+		case Identifier::Timestamp: {
+			auto const timestamp = chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
+			std::format_to(std::back_inserter(out), "{:%T}", timestamp);
+			break;
+		}
+		case Identifier::FileName: out.append(to_filename(input.file_name)); break;
+		case Identifier::LineNumber: std::format_to(std::back_inserter(out), "{}", input.line_number); break;
+
+		case Identifier::None:
+		default: break;
+		}
+	}
+
+	std::vector<Atom> m_atoms{};
+};
+
 struct Storage {
+	explicit Storage() {
+		auto const _ = get_thread_id();
+		m_formatter.set_interpolate_format(interpolate_format_v);
+	}
+
 	auto attach_file(std::string path) -> bool {
 		auto lock = std::scoped_lock{m_mutex};
 		return m_file.start(std::move(path));
@@ -356,6 +425,16 @@ struct Storage {
 		return m_colors;
 	}
 
+	void set_interpolate_format(std::string_view const interpolate_format) {
+		auto lock = std::scoped_lock{m_mutex};
+		m_formatter.set_interpolate_format(interpolate_format);
+	}
+
+	[[nodiscard]] auto format(Input const& input) const -> std::string {
+		auto lock = std::scoped_lock{m_mutex};
+		return m_formatter.format(input);
+	}
+
 	void print_to_file(CString const line) {
 		auto lock = std::scoped_lock{m_mutex};
 		m_file.print(line);
@@ -367,6 +446,7 @@ struct Storage {
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
 	std::optional<Colors> m_colors{colors_v};
+	Formatter m_formatter{};
 };
 
 auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -388,6 +468,8 @@ auto log::get_max_level() -> Level { return g_storage.max_level; }
 void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
 auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
+void log::set_interpolate_format(std::string_view const interpolate_format) { g_storage.set_interpolate_format(interpolate_format); }
+
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
 	thread_local auto const ret = s_id++;
@@ -395,21 +477,7 @@ auto log::get_thread_id() -> ThreadId {
 }
 
 auto log::format(Input const& input) -> std::string {
-	// [L] [tag/TT] message [timestamp] [source]
-
-	static constexpr std::size_t reserve_v = debug_v ? 128 : 64;
-	auto ret = std::string{};
-	ret.reserve(input.message.size() + reserve_v);
-
-	auto const level = level_to_char[input.level];
-	auto const tid = std::underlying_type_t<ThreadId>(get_thread_id());
-	auto const now = chr::time_point_cast<chr::seconds>(chr::system_clock::now());
-	auto const timestamp = chr::zoned_time{chr::current_zone(), now};
-
-	std::format_to(std::back_inserter(ret), "[{}] [{}/{:02}] {} [{:%T}]", level, input.tag, tid, input.message, timestamp);
-
-	if constexpr (debug_v) { std::format_to(std::back_inserter(ret), " [{}:{}]", to_filename(input.file_name), input.line_number); }
-
+	auto ret = g_storage.format(input);
 	ret.append("\n");
 	return ret;
 }
@@ -422,7 +490,7 @@ void log::print(Input const& input) {
 	auto* out = input.level == Level::Error ? stderr : stdout;
 	auto const do_print = [&](std::optional<escape::Rgb> const rgb) {
 		if (!rgb) {
-			std::print("{}", text);
+			std::print(out, "{}", text);
 			return;
 		}
 		auto const fg = escape::foreground(*rgb);
