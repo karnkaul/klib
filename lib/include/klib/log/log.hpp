@@ -80,8 +80,7 @@ void set_max_level(Level level);
 void set_colors(std::optional<Colors> const& colors);
 [[nodiscard]] auto get_colors() -> std::optional<Colors>;
 
-void set_interpolate_format(std::string interpolate_format);
-[[nodiscard]] auto get_interpolate_format() -> std::string_view;
+void set_interpolate_format(std::string_view interpolate_format);
 
 [[nodiscard]] auto get_thread_id() -> ThreadId;
 
