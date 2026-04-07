@@ -16,10 +16,18 @@ struct Atom {
 };
 
 template <typename ValueT, ProjectIdentifierT<ValueT> ProjT>
-void atomize_to(std::vector<Atom<ValueT>>& out_atoms, std::string_view const text, ProjT proj) {
+constexpr void atomize_to(std::vector<Atom<ValueT>>& out_atoms, std::string_view const text, ProjT proj) {
 	auto const per_token = [&](Token const& token) {
 		switch (token.type) {
+#if defined(__GNUG__) && !defined(__clang__)
+// GCC warns about std::string internals being uninitialized, despite this branch not using that variant type.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 		case Token::Type::Identifier: out_atoms.push_back(Atom<ValueT>{.payload = proj(token.lexeme), .token = token}); break;
+#if defined(__GNUG__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 		case Token::Type::String: out_atoms.push_back(Atom<ValueT>{.payload = std::string{token.lexeme}, .token = token}); break;
 		default: break;
 		}
