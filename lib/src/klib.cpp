@@ -16,6 +16,7 @@
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #if defined(_WIN32)
@@ -270,10 +271,10 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
+#include "klib/lerp_expr/scanner.hpp"
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
 #include "klib/string/c_string.hpp"
-#include "klib/string/lerp_expr.hpp"
 #include "klib/visitor.hpp"
 
 namespace klib {
@@ -337,9 +338,17 @@ enum class Identifier : std::int8_t { None, Level, Tag, ThreadId, Message, Times
 
 class Formatter {
   public:
-	void set_interpolate_format(std::string_view const fmt) {
+	void set_interpolate_format(std::string expression) {
 		m_atoms.clear();
-		atomize_lerp_expr_to(m_atoms, fmt, &to_identifier);
+		m_expression = std::move(expression);
+		auto const per_token = [&](Token const& token) {
+			switch (token.type) {
+			case Token::Type::Identifier: m_atoms.emplace_back(to_identifier(token.lexeme)); break;
+			case Token::Type::String: m_atoms.emplace_back(token.lexeme); break;
+			default: break;
+			}
+		};
+		lerp_expr::tokenize(m_expression, per_token);
 	}
 
 	[[nodiscard]] auto format(Input const& input) const -> std::string {
@@ -355,7 +364,8 @@ class Formatter {
 	}
 
   private:
-	using Atom = klib::LerpExprAtom<Identifier>;
+	using Token = lerp_expr::Token;
+	using Atom = std::variant<std::string_view, Identifier>;
 
 	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> Identifier {
 		if (word == "level") { return Identifier::Level; }
@@ -391,13 +401,14 @@ class Formatter {
 		}
 	}
 
+	std::string m_expression{};
 	std::vector<Atom> m_atoms{};
 };
 
 struct Storage {
 	explicit Storage() {
 		auto const _ = get_thread_id();
-		m_formatter.set_interpolate_format(interpolate_format_v);
+		m_formatter.set_interpolate_format(std::string{interpolate_format_v});
 	}
 
 	auto attach_file(std::string path) -> bool {
@@ -425,9 +436,9 @@ struct Storage {
 		return m_colors;
 	}
 
-	void set_interpolate_format(std::string_view const interpolate_format) {
+	void set_interpolate_format(std::string interpolate_format) {
 		auto lock = std::scoped_lock{m_mutex};
-		m_formatter.set_interpolate_format(interpolate_format);
+		m_formatter.set_interpolate_format(std::move(interpolate_format));
 	}
 
 	[[nodiscard]] auto format(Input const& input) const -> std::string {
@@ -468,7 +479,7 @@ auto log::get_max_level() -> Level { return g_storage.max_level; }
 void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
 auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
-void log::set_interpolate_format(std::string_view const interpolate_format) { g_storage.set_interpolate_format(interpolate_format); }
+void log::set_interpolate_format(std::string interpolate_format) { g_storage.set_interpolate_format(std::move(interpolate_format)); }
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
