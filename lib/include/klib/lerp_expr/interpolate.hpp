@@ -3,7 +3,7 @@
 
 namespace klib::lerp_expr {
 template <typename FuncT>
-concept FormatIdentifierT = requires(FuncT func, std::string& out, std::string_view identifier) {
+concept FormatIdentifierT = requires(FuncT func, std::string& out, Token const& identifier) {
 	{ func(out, identifier) };
 };
 
@@ -12,7 +12,7 @@ constexpr void interpolate_to(std::string& out, std::string_view const input, Fu
 	auto const per_token = [&](Token const& token) {
 		switch (token.type) {
 		case Token::Type::String: out.append(token.lexeme); break;
-		case Token::Type::Identifier: format_identifier(out, token.lexeme); break;
+		case Token::Type::Identifier: format_identifier(out, token); break;
 		default: break;
 		}
 	};

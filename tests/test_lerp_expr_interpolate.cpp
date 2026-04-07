@@ -14,8 +14,8 @@ TEST_CASE(lerp_expr_interpolate) {
 	map["timestamp"] = "01:23:45";
 	map["source_file"] = __FILE__;
 	map["source_line"] = "42";
-	auto const format_identifier = [&](std::string& out, std::string_view const identifier) {
-		auto const it = map.find(identifier);
+	auto const format_identifier = [&](std::string& out, Token const& identifier) {
+		auto const it = map.find(identifier.lexeme);
 		if (it == map.end()) { return; }
 		out.append(it->second);
 	};
