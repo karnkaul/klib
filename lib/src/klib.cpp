@@ -270,10 +270,10 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 // log
 
+#include "klib/lerp_expr/atomize.hpp"
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
 #include "klib/string/c_string.hpp"
-#include "klib/string/lerp_expr.hpp"
 #include "klib/visitor.hpp"
 
 namespace klib {
@@ -339,7 +339,7 @@ class Formatter {
   public:
 	void set_interpolate_format(std::string_view const fmt) {
 		m_atoms.clear();
-		atomize_lerp_expr_to(m_atoms, fmt, &to_identifier);
+		lerp_expr::atomize_to(m_atoms, fmt, &to_identifier);
 	}
 
 	[[nodiscard]] auto format(Input const& input) const -> std::string {
@@ -350,12 +350,12 @@ class Formatter {
 			[&](std::string_view const s) { ret.append(s); },
 			[&](Identifier const i) { format_identifier(ret, input, i); },
 		};
-		for (auto const& atom : m_atoms) { std::visit(visitor, atom); }
+		for (auto const& atom : m_atoms) { std::visit(visitor, atom.payload); }
 		return ret;
 	}
 
   private:
-	using Atom = klib::LerpExprAtom<Identifier>;
+	using Atom = lerp_expr::Atom<Identifier>;
 
 	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> Identifier {
 		if (word == "level") { return Identifier::Level; }
