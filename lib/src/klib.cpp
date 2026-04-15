@@ -1025,3 +1025,19 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 	return Selection::Option;
 }
 } // namespace klib
+
+// lerp_expr
+
+namespace klib::lerp_expr {
+void Token::Highlight::format_to(std::string& out, Token const& token, std::string_view const input_line) const {
+	if (!out.empty()) { out.push_back('\n'); }
+	std::format_to(std::back_inserter(out), "{}{}\n{}{:>{}}", prefix, input_line, prefix, ' ', token.start_index);
+	for (auto i = 0uz; i < token.lexeme.size(); ++i) { out.push_back(caret); }
+}
+
+auto Token::Highlight::format(Token const& token, std::string_view const input_line) const -> std::string {
+	auto ret = std::string{};
+	format_to(ret, token, input_line);
+	return ret;
+}
+} // namespace klib::lerp_expr
