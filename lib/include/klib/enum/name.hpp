@@ -2,6 +2,7 @@
 #include "klib/concepts.hpp"
 #include <algorithm>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -27,6 +28,9 @@ class EnumNameMap {
 		if (auto const it = std::ranges::find_if(m_entries, pred); it != m_entries.end()) { return it->first; }
 		return {};
 	}
+
+	[[nodiscard]] constexpr auto as_span() const -> std::span<Entry const> { return m_entries; }
+	[[nodiscard]] constexpr auto as_span() -> std::span<Entry> { return m_entries; }
 
   private:
 	ContainerT<Entry, Args...> m_entries{};
