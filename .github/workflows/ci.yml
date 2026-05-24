@@ -94,7 +94,7 @@ jobs:
       - name: test install
         run: cmake -DBUILD_DIR=build -DPRESET=ninja-clang -P install_test/script.cmake
   x64-windows-vs22:
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - name: configure
@@ -110,7 +110,7 @@ jobs:
       - name: test install
         run: cmake -DBUILD_DIR=build -DPRESET=vs22 -P install_test/script.cmake
   x64-windows-clang:
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - name: configure
@@ -126,7 +126,7 @@ jobs:
       - name: test install
         run: cmake -DBUILD_DIR=build -DPRESET=ninja-clang -P install_test/script.cmake
   x64-mingw-gcc:
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - name: configure
