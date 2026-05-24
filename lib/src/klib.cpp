@@ -1041,3 +1041,21 @@ auto Token::Highlight::format(Token const& token, std::string_view const input_l
 	return ret;
 }
 } // namespace klib::lerp_expr
+
+// shell
+
+#include "klib/cli/shell.hpp"
+
+namespace klib {
+auto shell::execute(CString const expression) -> ExitCode {
+	if (expression.as_view().empty()) { return success_v; }
+	// NOLINTNEXTLINE(concurrency-mt-unsafe)
+	return ExitCode(std::system(expression.c_str()));
+}
+
+auto shell::execute(std::string_view const expression, std::string_view const redirect) -> ExitCode {
+	if (expression.empty()) { return success_v; }
+	auto const redirected_expression = std::format("{} > {} 2>&1", expression, redirect);
+	return execute(redirected_expression);
+}
+} // namespace klib
