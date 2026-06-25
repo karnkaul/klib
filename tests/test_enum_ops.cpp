@@ -7,7 +7,7 @@ enum class Flag : std::int8_t {
 	One = 1 << 0,
 	Two = 1 << 1,
 };
-constexpr auto enable_enum_bitops(Flag /*unused*/) { return true; }
+[[maybe_unused]] constexpr auto enable_enum_bitops(Flag /*unused*/) { return true; }
 
 static_assert(Flag{} == Flag::None);
 static_assert(((Flag::One | Flag::Two) & Flag::One) == Flag::One);
