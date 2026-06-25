@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 4.3)
 
 set(package_name klib)
 project(${package_name} VERSION "0.6.5")
