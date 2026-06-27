@@ -380,7 +380,7 @@ class Formatter {
 
 	static void format_identifier(std::string& out, Input const& input, Identifier const identifier) {
 		switch (identifier) {
-		case Identifier::Level: out += level_to_char[input.level]; break;
+		case Identifier::Level: out += *level_char_map.to_value(input.level); break;
 		case Identifier::Tag: out.append(input.tag); break;
 		case Identifier::ThreadId: {
 			auto const thread_id = std::to_underlying(get_thread_id());
@@ -456,7 +456,7 @@ struct Storage {
   private:
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
-	std::optional<Colors> m_colors{colors_v};
+	std::optional<Colors> m_colors{lever_color_map};
 	Formatter m_formatter{};
 };
 
@@ -509,7 +509,7 @@ void log::print(Input const& input) {
 	};
 
 	if (auto const colors = g_storage.get_colors()) {
-		do_print((*colors)[input.level]);
+		do_print(*colors->to_value(input.level));
 	} else {
 		do_print({});
 	}

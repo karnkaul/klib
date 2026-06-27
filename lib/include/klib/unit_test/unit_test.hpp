@@ -6,8 +6,6 @@ namespace klib::unit_test {
 void check_expect(bool pred, std::string_view expr, std::string_view file, int line);
 void check_assert(bool pred, std::string_view expr, std::string_view file, int line);
 
-using TestFunc = void (*)();
-
 struct TestCase {
 	virtual ~TestCase() = default;
 
