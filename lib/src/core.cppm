@@ -10,8 +10,7 @@ module;
 export module klib.core;
 
 export import std;
-
-import klib.string;
+export import klib.string;
 
 #include "klib/concepts.hpp"
 #include "klib/macros.hpp"
@@ -78,12 +77,6 @@ auto is_internal(std::string_view const trace_description) -> bool {
 } // namespace klib
 
 export namespace klib {
-template <UniquePayloadT Type>
-	requires std::equality_comparable<Type>
-struct UniqueIdentity {
-	constexpr auto operator()(Type const& t) const noexcept -> bool { return t == Type{}; }
-};
-
 constexpr std::uint64_t kibi_v = 1024;
 constexpr std::uint64_t mebi_v = 1024 * kibi_v;
 constexpr std::uint64_t gibi_v = 1024 * mebi_v;
@@ -107,7 +100,73 @@ constexpr auto use_stacktrace_v =
 #else
 	false;
 #endif
+} // namespace klib
 
+export namespace klib {
+template <UniquePayloadT Type>
+	requires std::equality_comparable<Type>
+struct UniqueIdentity {
+	constexpr auto operator()(Type const& t) const noexcept -> bool { return t == Type{}; }
+};
+
+template <typename... Args>
+struct Noop {
+	constexpr void operator()(Args&&... /*unused*/) const noexcept {}
+};
+
+class Polymorphic {
+  public:
+	Polymorphic() = default;
+	virtual ~Polymorphic() = default;
+
+	Polymorphic(Polymorphic const&) = default;
+	Polymorphic(Polymorphic&&) = default;
+	auto operator=(Polymorphic const&) -> Polymorphic& = default;
+	auto operator=(Polymorphic&&) -> Polymorphic& = default;
+};
+
+class MoveOnly {
+  public:
+	MoveOnly(MoveOnly const&) = delete;
+	auto operator=(MoveOnly const&) = delete;
+
+	MoveOnly() = default;
+	~MoveOnly() = default;
+	MoveOnly(MoveOnly&&) = default;
+	auto operator=(MoveOnly&&) -> MoveOnly& = default;
+};
+
+class Pinned {
+  public:
+	Pinned(Pinned const&) = delete;
+	Pinned(Pinned&&) = delete;
+	auto operator=(Pinned const&) = delete;
+	auto operator=(Pinned&&) = delete;
+
+	Pinned() = default;
+	~Pinned() = default;
+};
+
+template <typename... Ts>
+struct Visitor : Ts... {
+	using Ts::operator()...;
+};
+
+template <typename... Ts>
+struct SubVisitor : Ts... {
+	using Ts::operator()...;
+
+	template <typename T>
+	constexpr void operator()(T&& /*unused*/) const {}
+};
+
+template <typename VariantT, typename... Ts>
+constexpr auto match(VariantT&& var, Ts&&... funcs) -> decltype(auto) {
+	return std::visit(Visitor{std::forward<Ts>(funcs)...}, std::forward<VariantT>(var));
+}
+} // namespace klib
+
+export namespace klib {
 auto is_debugger_attached() -> bool {
 #if defined(_WIN32)
 	return IsDebuggerPresent() != 0;
@@ -153,30 +212,9 @@ void trigger_failure() {
 	}
 }
 } // namespace assertion
+} // namespace klib
 
-template <typename... Args>
-struct Noop {
-	constexpr void operator()(Args&&... /*unused*/) const noexcept {}
-};
-
-template <typename... Ts>
-struct Visitor : Ts... {
-	using Ts::operator()...;
-};
-
-template <typename... Ts>
-struct SubVisitor : Ts... {
-	using Ts::operator()...;
-
-	template <typename T>
-	constexpr void operator()(T&& /*unused*/) const {}
-};
-
-template <typename VariantT, typename... Ts>
-constexpr auto match(VariantT&& var, Ts&&... funcs) -> decltype(auto) {
-	return std::visit(Visitor{std::forward<Ts>(funcs)...}, std::forward<VariantT>(var));
-}
-
+export namespace klib {
 struct Version {
 	std::int64_t major{};
 	std::int64_t minor{};
@@ -192,7 +230,9 @@ struct Version {
 	if (!fc(ret.major) || !fc.advance_if('.') || !fc(ret.minor) || !fc.advance_if('.') || !fc(ret.patch)) { return {}; }
 	return ret;
 }
+} // namespace klib
 
+export namespace klib {
 /// \brief Wrapper over a non-owning raw pointer.
 /// Asserts on attempts to dereference if null.
 template <typename Type>
@@ -233,7 +273,9 @@ class Ptr {
   private:
 	Type* m_ptr{};
 };
+} // namespace klib
 
+export namespace klib {
 template <UniquePayloadT Type, typename Deleter = Noop<Type>, typename Id = UniqueIdentity<Type>>
 class Unique {
   public:
@@ -281,7 +323,9 @@ class Unique {
 	KLIB_NO_UNIQUE_ADDRESS Deleter m_deleter;
 	KLIB_NO_UNIQUE_ADDRESS Id m_id;
 };
+} // namespace klib
 
+export namespace klib {
 [[nodiscard]] auto demangled_name(std::type_info const& info) -> std::string {
 #if defined(KLIB_USE_CXA_DEMANGLE)
 	static auto cleanup = [](std::string_view in) {
@@ -323,7 +367,9 @@ template <PolymorphicT Type>
 [[nodiscard]] auto demangled_name(Type const& t) -> std::string {
 	return demangled_name(typeid(t));
 }
+} // namespace klib
 
+export namespace klib {
 template <EnumT E>
 constexpr auto enable_enum_bitops(E&& /*unused*/) -> bool {
 	return false;
@@ -375,6 +421,116 @@ class EnumNameMap : public EnumMap<E, std::string_view> {
 		return {};
 	}
 };
+} // namespace klib
+
+export namespace klib {
+template <std::uint64_t Factor = 1>
+struct ByteCount {
+	static constexpr std::uint64_t factor_v = Factor;
+
+	constexpr explicit ByteCount(std::int64_t const value = {}) : m_value(value) {}
+
+	template <std::uint64_t OtherFactor>
+	constexpr ByteCount(ByteCount<OtherFactor> const bc) : m_value((bc.count() * bc.factor_v) / factor_v) {}
+
+	constexpr auto operator+=(ByteCount const bc) -> ByteCount& {
+		m_value += bc.m_value;
+		return *this;
+	}
+
+	constexpr auto operator-=(ByteCount const bc) -> ByteCount& {
+		m_value -= bc.m_value;
+		return *this;
+	}
+
+	constexpr auto operator*=(ByteCount const bc) -> ByteCount& {
+		m_value *= bc.m_value;
+		return *this;
+	}
+
+	constexpr auto operator/=(std::int64_t const divisor) -> ByteCount& {
+		m_value /= divisor;
+		return *this;
+	}
+
+	[[nodiscard]] constexpr auto count() const -> std::int64_t { return m_value; }
+
+  private:
+	std::int64_t m_value{};
+};
+
+template <std::uint64_t FactorL, std::uint64_t FactorR>
+constexpr auto operator<=>(ByteCount<FactorL> const a, ByteCount<FactorR> const b) -> std::strong_ordering {
+	return a.count() * a.factor_v <=> b.count() * b.factor_v;
+}
+
+template <std::uint64_t FactorL, std::uint64_t FactorR>
+constexpr auto operator==(ByteCount<FactorL> const a, ByteCount<FactorR> const b) -> bool {
+	return a.count() * std::int64_t(a.factor_v) == b.count() * std::int64_t(b.factor_v);
+}
+
+template <std::uint64_t Factor>
+constexpr auto operator+(ByteCount<Factor> const a, ByteCount<Factor> const b) -> ByteCount<Factor> {
+	auto ret = a;
+	ret += b;
+	return ret;
+}
+
+template <std::uint64_t Factor>
+constexpr auto operator-(ByteCount<Factor> const a, ByteCount<Factor> const b) -> ByteCount<Factor> {
+	auto ret = a;
+	ret -= b;
+	return ret;
+}
+
+template <std::uint64_t Factor>
+constexpr auto operator*(ByteCount<Factor> const a, ByteCount<Factor> const b) -> ByteCount<Factor> {
+	auto ret = a;
+	ret *= b;
+	return ret;
+}
+
+template <std::uint64_t Factor>
+constexpr auto operator/(ByteCount<Factor> const a, std::int64_t const divisor) -> ByteCount<Factor> {
+	auto ret = a;
+	ret /= divisor;
+	return ret;
+}
+
+template <std::uint64_t Factor>
+constexpr auto operator/(ByteCount<Factor> const a, ByteCount<Factor> const b) -> std::int64_t {
+	return a.count() / b.count();
+}
+
+using Bytes = ByteCount<1>;
+using KibiBytes = ByteCount<kibi_v>;
+using MebiBytes = ByteCount<mebi_v>;
+using GibiBytes = ByteCount<gibi_v>;
+using TebiBytes = ByteCount<tebi_v>;
+using KiloBytes = ByteCount<kilo_v>;
+using MegaBytes = ByteCount<mega_v>;
+using GigaBytes = ByteCount<giga_v>;
+using TeraBytes = ByteCount<tera_v>;
+
+namespace literals {
+constexpr auto operator""_B(unsigned long long value) { return Bytes{std::int64_t(value)}; }
+constexpr auto operator""_KiB(unsigned long long value) { return KibiBytes{std::int64_t(value)}; }
+constexpr auto operator""_MiB(unsigned long long value) { return MebiBytes{std::int64_t(value)}; }
+constexpr auto operator""_GiB(unsigned long long value) { return GibiBytes{std::int64_t(value)}; }
+constexpr auto operator""_TiB(unsigned long long value) { return TebiBytes{std::int64_t(value)}; }
+constexpr auto operator""_KB(unsigned long long value) { return KiloBytes{std::int64_t(value)}; }
+constexpr auto operator""_MB(unsigned long long value) { return MegaBytes{std::int64_t(value)}; }
+constexpr auto operator""_GB(unsigned long long value) { return GigaBytes{std::int64_t(value)}; }
+constexpr auto operator""_TB(unsigned long long value) { return TeraBytes{std::int64_t(value)}; }
+} // namespace literals
+} // namespace klib
+
+export namespace klib {
+template <typename Type>
+	requires(std::floating_point<Type> || std::signed_integral<Type>)
+constexpr auto abs(Type const t) -> Type {
+	return t < Type(0) ? -t : t;
+}
 } // namespace klib
 
 export template <klib::EnumOpsT E>
