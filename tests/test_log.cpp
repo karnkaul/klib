@@ -1,10 +1,7 @@
-#include "klib/log/file.hpp"
-#include "klib/log/typed.hpp"
-#include "klib/string/c_string.hpp"
 #include "klib/unit_test/unit_test.hpp"
-#include <filesystem>
-#include <fstream>
-#include <print>
+
+import klib.log;
+import klib.unit_test;
 
 namespace {
 using namespace klib;

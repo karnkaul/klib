@@ -1,6 +1,7 @@
-#include "klib/enum/name.hpp"
 #include "klib/unit_test/unit_test.hpp"
-#include <cstdint>
+
+import klib.core;
+import klib.unit_test;
 
 namespace {
 enum class Foo : std::int8_t { Alpha, Beta, Gamma };

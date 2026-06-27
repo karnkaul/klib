@@ -15,10 +15,15 @@ if(NOT "${sources}" STREQUAL "")
   target_sources(${PROJECT_NAME}-tests PRIVATE
     test_assert.cpp
     test_demangle.cpp
+    test_enum_name.cpp
+    test_enum_ops.cpp
     test_fixed_string.cpp
+    test_from_chars.cpp
+    test_lerp_expr.cpp
+    test_log.cpp
+    test_ptr.cpp
     test_unique.cpp
     test_version.cpp
-    test_from_chars.cpp
   )
   add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 endif()

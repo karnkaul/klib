@@ -69,7 +69,7 @@ class FixedString {
 		m_size = 0;
 	}
 
-	constexpr auto substr(std::size_t const pos, std::size_t const count = std::string_view::npos) const -> FixedString {
+	[[nodiscard]] constexpr auto substr(std::size_t const pos, std::size_t const count = std::string_view::npos) const -> FixedString {
 		return FixedString{as_view().substr(pos, count)};
 	}
 
@@ -144,6 +144,24 @@ struct FromChars {
 	std::string_view text{};
 };
 } // namespace klib
+
+namespace klib::escape {
+export using Rgb = std::array<std::uint8_t, 3>;
+
+export constexpr auto prefix_v = std::string_view{"\x1b["};
+export constexpr auto suffix_v = std::string_view{"m"};
+
+namespace {
+[[nodiscard]] auto colorify(Rgb const rgb, int const target) -> FixedString<> {
+	return {"{}{};2;{};{};{}{}", prefix_v, target, rgb[0], rgb[1], rgb[2], suffix_v};
+}
+} // namespace
+
+export auto const clear = FixedString<>{"{}{}", prefix_v, suffix_v};
+
+export [[nodiscard]] auto foreground(Rgb const rgb) -> FixedString<> { return colorify(rgb, 38); }
+export [[nodiscard]] auto background(Rgb const rgb) -> FixedString<> { return colorify(rgb, 48); }
+} // namespace klib::escape
 
 template <>
 struct std::formatter<klib::CString> : formatter<string_view> {

@@ -159,6 +159,24 @@ struct Noop {
 	constexpr void operator()(Args&&... /*unused*/) const noexcept {}
 };
 
+template <typename... Ts>
+struct Visitor : Ts... {
+	using Ts::operator()...;
+};
+
+template <typename... Ts>
+struct SubVisitor : Ts... {
+	using Ts::operator()...;
+
+	template <typename T>
+	constexpr void operator()(T&& /*unused*/) const {}
+};
+
+template <typename VariantT, typename... Ts>
+constexpr auto match(VariantT&& var, Ts&&... funcs) -> decltype(auto) {
+	return std::visit(Visitor{std::forward<Ts>(funcs)...}, std::forward<VariantT>(var));
+}
+
 struct Version {
 	std::int64_t major{};
 	std::int64_t minor{};
@@ -305,7 +323,90 @@ template <PolymorphicT Type>
 [[nodiscard]] auto demangled_name(Type const& t) -> std::string {
 	return demangled_name(typeid(t));
 }
+
+template <EnumT E>
+constexpr auto enable_enum_bitops(E&& /*unused*/) -> bool {
+	return false;
+}
+
+template <typename E>
+concept EnumOpsT = EnumT<E> && enable_enum_bitops(E{});
+
+template <EnumT E, typename ValueT, template <typename...> typename ContainerT = std::vector, typename... Args>
+class EnumMap {
+  public:
+	using Entry = std::pair<E, ValueT>;
+
+	EnumMap() = default;
+
+	explicit constexpr EnumMap(std::initializer_list<Entry> const& entries) : m_entries(entries) {}
+
+	[[nodiscard]] constexpr auto to_value(E const e) const -> Ptr<ValueT const> {
+		auto const pred = [e](Entry const& entry) { return entry.first == e; };
+		if (auto const it = std::ranges::find_if(m_entries, pred); it != m_entries.end()) { return &it->second; }
+		return nullptr;
+	}
+
+	[[nodiscard]] constexpr auto as_span() const -> std::span<Entry const> { return m_entries; }
+	[[nodiscard]] constexpr auto as_span() -> std::span<Entry> { return m_entries; }
+
+  private:
+	ContainerT<Entry, Args...> m_entries{};
+};
+
+template <EnumT E, template <typename...> typename ContainerT = std::vector, typename... Args>
+class EnumNameMap : public EnumMap<E, std::string_view> {
+  public:
+	using Entry = EnumMap<E, std::string_view>::Entry;
+
+	EnumNameMap() = default;
+
+	explicit constexpr EnumNameMap(std::initializer_list<Entry> const& entries) : EnumMap<E, std::string_view>(entries) {}
+
+	[[nodiscard]] constexpr auto to_name(E const e) const -> std::string_view {
+		if (auto const ptr = this->to_value(e)) { return *ptr; }
+		return {};
+	}
+
+	[[nodiscard]] constexpr auto to_enum(std::string_view const name) const -> std::optional<E> {
+		auto const pred = [name](Entry const& entry) { return entry.second == name; };
+		auto const entries = this->as_span();
+		if (auto const it = std::ranges::find_if(entries, pred); it != entries.end()) { return it->first; }
+		return {};
+	}
+};
 } // namespace klib
+
+export template <klib::EnumOpsT E>
+constexpr auto operator|=(E& out, E const b) -> E& {
+	out = E{std::underlying_type_t<E>(std::to_underlying(out) | std::to_underlying(b))};
+	return out;
+}
+
+export template <klib::EnumOpsT E>
+constexpr auto operator|(E const a, E const b) -> E {
+	auto ret = a;
+	ret |= b;
+	return ret;
+}
+
+export template <klib::EnumOpsT E>
+constexpr auto operator&=(E& out, E const b) -> E& {
+	out = E{std::underlying_type_t<E>(std::to_underlying(out) & std::to_underlying(b))};
+	return out;
+}
+
+export template <klib::EnumOpsT E>
+constexpr auto operator&(E const a, E const b) -> E {
+	auto ret = a;
+	ret &= b;
+	return ret;
+}
+
+export template <klib::EnumOpsT E>
+constexpr auto operator~(E const e) -> E {
+	return E{std::underlying_type_t<E>(~std::to_underlying(e))};
+}
 
 template <>
 struct std::formatter<klib::Version> : klib::FormatParser {
