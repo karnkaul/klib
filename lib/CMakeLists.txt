@@ -77,8 +77,9 @@ target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
   src/log.cppm
   src/cli.cppm
   src/task.cppm
+  src/klib.cppm
   "${CMAKE_CURRENT_BINARY_DIR}/${version_module}"
-  $<$<BOOL:${KLIB_UNIT_TEST}>:src/unit_test.cppm>
+  $<$<BOOL:${KLIB_UNIT_TEST}>:src/unit_test/unit_test.cppm>
 )
 
 if(KLIB_UNIT_TEST)

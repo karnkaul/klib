@@ -1,4 +1,4 @@
-#include "klib/byte_count.hpp"
+import klib.core;
 
 namespace {
 using namespace klib;
