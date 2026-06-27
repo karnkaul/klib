@@ -50,9 +50,7 @@
       "inherits": "base-gcc",
       "binaryDir": "${sourceDir}/out/gcc",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
-        "CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT": "-Werror",
-        "CMAKE_CXX_FLAGS_RELEASE_INIT": "-Werror"
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
       }
     },
     {
@@ -62,9 +60,7 @@
       "inherits": "base-clang",
       "binaryDir": "${sourceDir}/out/clang",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type",
-        "CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT": "-Werror",
-        "CMAKE_CXX_FLAGS_RELEASE_INIT": "-Werror"
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
       }
     },
     {
@@ -82,21 +78,15 @@
       "name": "ninja-ubsan",
       "displayName": "Ninja UBSan",
       "description": "UBSan build configuration using Ninja Multi-config",
-      "inherits": "default",
-      "binaryDir": "${sourceDir}/out/ubsan",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=undefined -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
-      }
+      "inherits": "ninja-clang",
+      "binaryDir": "${sourceDir}/out/ubsan"
     },
     {
       "name": "ninja-asan",
       "displayName": "Ninja ASan",
       "description": "ASan build configuration using Ninja Multi-config",
-      "inherits": "default",
-      "binaryDir": "${sourceDir}/out/asan",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "-fsanitize=address -Wall -Wextra -Wpedantic -Wconversion -Werror=return-type"
-      }
+      "inherits": "ninja-clang",
+      "binaryDir": "${sourceDir}/out/asan"
     },
     {
       "name": "ninja-msvc-asan",

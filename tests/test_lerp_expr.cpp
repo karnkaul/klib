@@ -1,8 +1,7 @@
-#include "klib/lerp_expr/interpolate.hpp"
 #include "klib/unit_test/unit_test.hpp"
-#include <format>
-#include <string_view>
-#include <unordered_map>
+
+import klib.lerp_expr;
+import klib.unit_test;
 
 namespace {
 using namespace klib::lerp_expr;

@@ -1,5 +1,4 @@
-#include "klib/enum/bitops.hpp"
-#include <cstdint>
+import klib.core;
 
 namespace {
 enum class Flag : std::int8_t {

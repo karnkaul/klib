@@ -1,4 +1,4 @@
-#include "klib/ptr.hpp"
+import klib.core;
 
 namespace {
 template <typename T>

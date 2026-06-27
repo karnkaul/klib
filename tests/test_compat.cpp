@@ -1,4 +1,4 @@
-#include "klib/compat.hpp"
+import klib.core;
 
 namespace {
 static_assert(klib::abs(-1) == 1);

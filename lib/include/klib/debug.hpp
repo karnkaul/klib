@@ -1,30 +1,26 @@
 #pragma once
-#include "klib/debug/trap.hpp"
-#include <cstdint>
-#include <exception>
-#include <stacktrace>
 
-namespace klib::assertion {
-enum class FailAction : std::uint8_t { Throw, Terminate, None };
+/// This header must be used in conjunction with module 'klib.core'.
 
-struct Failure : std::exception {
-	[[nodiscard]] auto what() const noexcept -> char const* final { return "assertion failure"; }
-};
+#if defined(_MSC_VER) || defined(__MINGW64__)
+#define KLIB_EXEC_DEBUG_TRAP() __debugbreak()
+#elif __has_builtin(__builtin_debug_trap)
+#define KLIB_EXEC_DEBUG_TRAP() __builtin_debug / trap()
+#elif __has_include(<csignal>)
+#include <csignal>
+#define KLIB_EXEC_DEBUG_TRAP() std::raise(SIGTRAP)
+#else
+#define KLIB_EXEC_DEBUG_TRAP()
+#endif
 
-[[nodiscard]] auto get_fail_action() -> FailAction;
-void set_fail_action(FailAction value);
+#define KLIB_DEBUG_TRAP()                                                                                                                                      \
+	if (::klib::is_debugger_attached()) { KLIB_EXEC_DEBUG_TRAP(); }
 
 #if defined(KLIB_USE_STACKTRACE)
 #define KLIB_GET_TRACE std::stacktrace::current
 #else
 #define KLIB_GET_TRACE std::stacktrace
 #endif
-
-void append_trace(std::string& out, std::stacktrace const& trace);
-void print(std::string_view expr, std::stacktrace const& trace = KLIB_GET_TRACE());
-
-void trigger_failure();
-} // namespace klib::assertion
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define KLIB_ASSERT(expr)                                                                                                                                      \

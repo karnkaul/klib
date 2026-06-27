@@ -10,6 +10,7 @@ if(NOT "${sources}" STREQUAL "")
     "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src"
     "${CMAKE_CURRENT_SOURCE_DIR}"
   )
+
   target_sources(${PROJECT_NAME}-tests PRIVATE ${sources})
   add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 endif()

@@ -1,5 +1,7 @@
-#include "klib/string/fixed_string.hpp"
 #include "klib/unit_test/unit_test.hpp"
+
+import klib.unit_test;
+import klib.string;
 
 namespace {
 using namespace klib;

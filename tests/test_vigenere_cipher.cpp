@@ -1,5 +1,7 @@
 #include "klib/unit_test/unit_test.hpp"
-#include "klib/vigenere_cipher.hpp"
+
+import klib.unit_test;
+import klib.core;
 
 namespace {
 using namespace klib;
