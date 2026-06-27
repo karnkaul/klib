@@ -2,6 +2,11 @@ module;
 
 #include "klib/debug.hpp"
 
+#if defined(__linux__)
+#include <linux/limits.h>
+#include <unistd.h>
+#endif
+
 #if __has_include(<cxxabi.h>)
 #define KLIB_USE_CXA_DEMANGLE
 #include <cxxabi.h>
@@ -424,6 +429,25 @@ class EnumNameMap : public EnumMap<E, std::string_view> {
 } // namespace klib
 
 export namespace klib {
+class ScopedDefer {
+  public:
+	using Func = std::move_only_function<void()>;
+
+	template <std::convertible_to<Func> F = Func>
+	explicit(false) ScopedDefer(F func = {}) : m_func(std::move(func)) {}
+
+  private:
+	struct Id {
+		auto operator()(Func const& f) const noexcept -> bool { return f == nullptr; }
+	};
+	struct Deleter {
+		void operator()(Func func) const noexcept { func(); }
+	};
+	Unique<Func, Deleter, Id> m_func;
+};
+} // namespace klib
+
+export namespace klib {
 template <std::uint64_t Factor = 1>
 struct ByteCount {
 	static constexpr std::uint64_t factor_v = Factor;
@@ -525,11 +549,198 @@ constexpr auto operator""_TB(unsigned long long value) { return TeraBytes{std::i
 } // namespace literals
 } // namespace klib
 
+export namespace klib::env {
+[[nodiscard]] auto exe_path() -> std::string const& {
+	static std::string const ret = [] {
+		auto ret = std::string{};
+#if defined(_WIN32)
+		auto buffer = std::array<char, MAX_PATH>{};
+		DWORD length = GetModuleFileNameA(nullptr, buffer.data(), buffer.size());
+		if (length == 0) { return ret; }
+		ret = std::string{buffer.data(), length};
+#elif defined(__linux__)
+		auto buffer = std::array<char, PATH_MAX>{};
+		ssize_t length = ::readlink("/proc/self/exe", buffer.data(), buffer.size());
+		if (length == -1) { return ret; }
+		ret = std::string{buffer.data(), std::size_t(length)};
+#endif
+		return ret;
+	}();
+	return ret;
+}
+
+[[nodiscard]] auto get_var(CString key) -> CString {
+	if (key.as_view().empty()) { return {}; }
+#if _WIN32 && __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+	// NOLINTNEXTLINE(concurrency-mt-unsafe)
+	return std::getenv(key.c_str());
+#if _WIN32 && __clang__
+#pragma clang diagnostic pop
+#endif
+}
+} // namespace klib::env
+
+export namespace klib {
+namespace fs = std::filesystem;
+
+template <typename ContainerT>
+auto read_file_bytes_into(ContainerT& out, CString const path) -> bool {
+	using value_type = ContainerT::value_type;
+	auto file = std::ifstream{path.c_str(), std::ios::binary | std::ios::ate};
+	if (!file.is_open()) { return false; }
+	auto const size = file.tellg();
+	if (std::size_t(size) % sizeof(value_type) != 0) { return false; }
+	file.seekg(0, std::ios::beg);
+	out.resize(std::size_t(size) / sizeof(value_type));
+	void* first = out.data();
+	file.read(static_cast<char*>(first), size);
+	return true;
+}
+
+[[nodiscard]] auto resolve_symlink(std::string_view const path, int const max_iters = 100) -> std::string {
+	auto real_path = fs::path{path};
+	auto err = std::error_code{};
+	for (auto iter = 0; iter < max_iters; ++iter) {
+		if (real_path.empty()) { return {}; }
+		if (fs::is_symlink(real_path, err)) {
+			real_path = fs::read_symlink(real_path, err);
+			if (err != std::errc{}) { return {}; }
+			continue;
+		}
+
+		return real_path.string();
+	}
+	return {};
+}
+} // namespace klib
+
+export namespace klib {
+/// \brief Combine hash into given seed.
+///
+/// Source: `boost::hash_combine`\n
+// <a href="https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine">
+/// https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine</a>
+/// \param out_seed mutable reference to an existing seed (hash value).
+/// \param hash Hash to combine.
+constexpr void hash_combine(std::size_t& out_seed, std::size_t const hash) { out_seed ^= hash + 0x9e3779b9 + (out_seed << 6) + (out_seed >> 2); }
+
+/// \brief Combine hashes of multiple objects into given seed.
+/// \param out_seed Mutable reference to existing seed (hash value).
+/// \param t Objects whose hashes to combine into out_seed.
+template <template <typename> typename Hasher = std::hash, typename... Types>
+constexpr void hash_combine(std::size_t& out_seed, Types const&... t) {
+	(hash_combine(out_seed, Hasher<Types>{}(t)), ...);
+}
+
+/// \brief Make a combined hash of multiple objects.
+/// \param t Objects whose hashes to combine.
+/// \returns Combined hash.
+template <template <typename> typename Hasher = std::hash, typename... Types>
+constexpr auto make_combined_hash(Types const&... t) -> std::size_t {
+	auto ret = std::size_t{};
+	hash_combine<Hasher>(ret, t...);
+	return ret;
+}
+} // namespace klib
+
 export namespace klib {
 template <typename Type>
 	requires(std::floating_point<Type> || std::signed_integral<Type>)
 constexpr auto abs(Type const t) -> Type {
 	return t < Type(0) ? -t : t;
+}
+} // namespace klib
+
+export namespace klib {
+template <std::integral Type = int, typename Gen>
+[[nodiscard]] auto random_int(Gen& generator, Type const lo, Type const hi) -> Type {
+	return std::uniform_int_distribution<Type>{lo, hi}(generator);
+}
+
+template <std::integral Type = std::size_t, typename Gen>
+[[nodiscard]] auto random_index(Gen& generator, Type const size) -> Type {
+	if (size == Type(0)) { return Type{}; }
+	return random_int<Type>(generator, 0, size - 1);
+}
+
+template <std::floating_point Type = float, typename Gen>
+[[nodiscard]] auto random_float(Gen& generator, Type const lo, Type const hi) -> Type {
+	return std::uniform_real_distribution<Type>{lo, hi}(generator);
+}
+} // namespace klib
+
+namespace klib {
+namespace {
+class VigenereCipher {
+  public:
+	explicit constexpr VigenereCipher(std::string_view const key) : m_key(key) { KLIB_ASSERT(!m_key.empty()); }
+
+	constexpr void encrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &shift); }
+	constexpr void decrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &unshift); }
+
+  private:
+	static constexpr auto min_shift_v = 32;
+	static constexpr auto max_shift_v = 126;
+	static constexpr auto shift_mod_v = max_shift_v - min_shift_v + 1;
+
+	[[nodiscard]] static constexpr auto in_range(char const ch) -> bool { return int(ch) >= min_shift_v && int(ch) <= max_shift_v; }
+
+	[[nodiscard]] static constexpr auto shift(char const ch, int const distance) -> char {
+		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		auto const ret = int(ch) - min_shift_v + distance;
+		KLIB_ASSERT(ret >= 0);
+		return char((ret % shift_mod_v) + min_shift_v);
+	}
+
+	[[nodiscard]] static constexpr auto unshift(char const ch, int const distance) -> char {
+		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		auto const ret = int(ch) + shift_mod_v - min_shift_v - distance;
+		KLIB_ASSERT(ret >= 0);
+		return char((ret % shift_mod_v) + min_shift_v);
+	}
+
+	template <typename F>
+	constexpr void process(std::string_view const src, std::span<char> dst, F func) const {
+		KLIB_ASSERT(src.size() <= dst.size());
+		if (src.empty()) { return; }
+		for (std::size_t i = 0; i < src.size(); ++i) {
+			auto const ch = src[i];
+			if (in_range(ch)) {
+				auto const j = i % m_key.size();
+				auto const distance = int(m_key[j]) - min_shift_v;
+				KLIB_ASSERT(distance >= 0);
+				dst[i] = func(src[i], distance);
+			} else {
+				dst[i] = src[i];
+			}
+		}
+	}
+
+	std::string_view m_key;
+};
+
+template <typename F>
+auto apply_vigenere(std::string_view const key, std::string_view const input, F func) -> std::string {
+	auto ret = std::string{};
+	ret.resize(input.size());
+	auto const span = std::span{ret.data(), ret.size()};
+	auto cipher = klib::VigenereCipher{key};
+	std::invoke(func, &cipher, input, span);
+	return ret;
+}
+} // namespace
+} // namespace klib
+
+export namespace klib {
+[[nodiscard]] auto vigenere_encrypt(std::string_view const key, std::string_view const input) -> std::string {
+	return apply_vigenere(key, input, &VigenereCipher::encrypt);
+}
+
+[[nodiscard]] auto vigenere_decrypt(std::string_view const key, std::string_view const input) -> std::string {
+	return apply_vigenere(key, input, &VigenereCipher::decrypt);
 }
 } // namespace klib
 
