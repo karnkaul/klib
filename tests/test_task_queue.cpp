@@ -1,9 +1,7 @@
-#include "klib/task/queue.hpp"
 #include "klib/unit_test/unit_test.hpp"
-#include <array>
-#include <chrono>
-#include <random>
-#include <thread>
+
+import klib.task;
+import klib.unit_test;
 
 namespace {
 using namespace klib::task;

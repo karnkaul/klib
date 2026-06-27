@@ -22,6 +22,7 @@ if(NOT "${sources}" STREQUAL "")
     test_lerp_expr.cpp
     test_log.cpp
     test_ptr.cpp
+    test_task_queue.cpp
     test_unique.cpp
     test_version.cpp
   )
