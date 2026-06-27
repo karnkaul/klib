@@ -1,5 +1,7 @@
-#include "klib/cli/shell.hpp"
 #include "klib/unit_test/unit_test.hpp"
+
+import klib.cli;
+import klib.unit_test;
 
 namespace {
 TEST_CASE(shell_execute) {

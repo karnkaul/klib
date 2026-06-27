@@ -1,6 +1,4 @@
-#include "klib/meta.hpp"
-#include <concepts>
-#include <cstdint>
+import klib.core;
 
 namespace {
 using namespace klib;

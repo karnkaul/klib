@@ -75,6 +75,7 @@ target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
   src/core.cppm
   src/lerp_expr.cppm
   src/log.cppm
+  src/cli.cppm
   src/task.cppm
   "${CMAKE_CURRENT_BINARY_DIR}/${version_module}"
   $<$<BOOL:${KLIB_UNIT_TEST}>:src/unit_test.cppm>
