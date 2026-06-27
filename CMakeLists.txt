@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 4.3)
 
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
+set(CMAKE_CXX_MODULE_STD ON)
+
 set(package_name klib)
 project(${package_name} VERSION "0.6.6")
 
@@ -35,26 +38,25 @@ endif()
 
 add_subdirectory(lib)
 
-if(KLIB_INSTALL)
-  message(STATUS "[${package_name}] setting up install")
-  include(GNUInstallDirs)
+# if(KLIB_INSTALL)
+# message(STATUS "[${package_name}] setting up install")
+# include(GNUInstallDirs)
 
-  set(install_dst "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
+# set(install_dst "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
 
-  install(
-    TARGETS ${package_name} ${package_name}-test-main
-    EXPORT ${package_name}-targets
-    FILE_SET HEADERS
-  )
+# install(
+# TARGETS ${package_name} ${package_name}-test-main
+# EXPORT ${package_name}-targets
+# FILE_SET HEADERS
+# )
 
-  install(
-    EXPORT ${package_name}-targets
-    DESTINATION "${install_dst}"
-    NAMESPACE ${package_name}::
-    FILE ${package_name}-config.cmake
-  )
-endif()
-
+# install(
+# EXPORT ${package_name}-targets
+# DESTINATION "${install_dst}"
+# NAMESPACE ${package_name}::
+# FILE ${package_name}-config.cmake
+# )
+# endif()
 if(KLIB_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)

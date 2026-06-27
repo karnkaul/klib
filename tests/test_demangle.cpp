@@ -1,6 +1,8 @@
-#include "klib/demangle.hpp"
-#include "klib/string/c_string.hpp"
 #include "klib/unit_test/unit_test.hpp"
+
+import klib.unit_test;
+import klib.core;
+import klib.string;
 
 namespace test {
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)

@@ -1,6 +1,8 @@
-#include "klib/constants.hpp"
-#include "klib/debug/assert.hpp"
+#include "klib/debug.hpp"
 #include "klib/unit_test/unit_test.hpp"
+
+import klib.unit_test;
+import klib.core;
 
 namespace {
 TEST_CASE(assert) {

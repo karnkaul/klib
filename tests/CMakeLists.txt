@@ -10,9 +10,18 @@ if(NOT "${sources}" STREQUAL "")
     "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src"
     "${CMAKE_CURRENT_SOURCE_DIR}"
   )
-  target_sources(${PROJECT_NAME}-tests PRIVATE ${sources})
+
+  # target_sources(${PROJECT_NAME}-tests PRIVATE ${sources})
+  target_sources(${PROJECT_NAME}-tests PRIVATE
+    test_assert.cpp
+    test_demangle.cpp
+    test_fixed_string.cpp
+    test_unique.cpp
+    test_version.cpp
+    test_from_chars.cpp
+  )
   add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 endif()
 
-add_executable(${PROJECT_NAME}-xplat-main-test WIN32 xplat_main_test.cpp)
-klib_set_mainCRTStartup(${PROJECT_NAME}-xplat-main-test)
+# add_executable(${PROJECT_NAME}-xplat-main-test WIN32 xplat_main_test.cpp)
+# klib_set_mainCRTStartup(${PROJECT_NAME}-xplat-main-test)

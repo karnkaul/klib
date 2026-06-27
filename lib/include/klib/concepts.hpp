@@ -1,6 +1,4 @@
 #pragma once
-#include <concepts>
-#include <string>
 
 namespace klib {
 template <typename Type>
@@ -21,8 +19,6 @@ concept MemcpyAble = std::is_trivially_copyable_v<Type>;
 template <typename Type>
 concept PolymorphicT = std::is_polymorphic_v<Type>;
 
-namespace args {
 template <typename Type>
-concept ParamT = StringyT<Type> || NumberT<Type>;
-} // namespace args
+concept UniquePayloadT = std::is_default_constructible_v<Type> && std::move_constructible<Type>;
 } // namespace klib
