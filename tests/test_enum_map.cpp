@@ -1,4 +1,4 @@
-#include "klib/enum/name.hpp"
+#include "klib/enum/map.hpp"
 #include "klib/unit_test/unit_test.hpp"
 #include <cstdint>
 
