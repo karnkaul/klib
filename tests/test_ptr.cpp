@@ -15,5 +15,9 @@ static_assert(p_a == &a);
 constexpr auto b = B{};
 constexpr Ptr<A const> p_b{&b};
 static_assert(p_b);
-static_assert(p_b == Ptr{&b});
+static_assert(p_b == &b);
+static_assert(p_a != klib::Ptr{&b});
+
+constexpr Ptr<A const> null = nullptr;
+static_assert(null == nullptr);
 } // namespace

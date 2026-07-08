@@ -33,6 +33,13 @@ class Ptr {
 		return m_ptr;
 	}
 
+	constexpr auto operator==(std::nullptr_t) const -> bool { return m_ptr == nullptr; }
+
+	template <std::derived_from<Type> T>
+	constexpr auto operator==(T const* t) const -> bool {
+		return m_ptr == t;
+	}
+
 	[[nodiscard]] explicit(false) constexpr operator bool() const { return m_ptr != nullptr; }
 
 	template <typename T>
