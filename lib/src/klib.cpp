@@ -929,10 +929,39 @@ auto klib::demangled_name(std::type_info const& info) -> std::string {
 // file_io
 
 #include "klib/file_io.hpp"
+#include <fstream>
 
 namespace klib {
 namespace fs = std::filesystem;
+
+namespace {
+template <typename ContainerT>
+	requires(sizeof(typename ContainerT::value_type) == 1)
+auto read_file_bytes_impl(ContainerT& out, CString const path) -> bool {
+	auto file = std::ifstream{path.c_str(), std::ios::binary | std::ios::ate};
+	if (!file.is_open()) { return false; }
+	auto const size = file.tellg();
+	file.seekg(0, std::ios::beg);
+	out.resize(std::size_t(size));
+	void* first = out.data();
+	file.read(static_cast<char*>(first), size);
+	return true;
+}
+} // namespace
+
 } // namespace klib
+
+auto klib::read_file_bytes_to(std::vector<std::byte>& out, CString const path) -> bool { return read_file_bytes_impl(out, path); }
+
+auto klib::read_file_bytes_to(std::string& out, CString const path) -> bool { return read_file_bytes_impl(out, path); }
+
+auto klib::write_bytes_to_file(std::span<std::byte const> bytes, CString const path) -> bool {
+	auto file = std::ofstream{path.c_str(), std::ios::binary};
+	if (!file) { return false; }
+	void const* data = bytes.data();
+	file.write(static_cast<char const*>(data), std::streamsize(bytes.size()));
+	return file.good();
+}
 
 auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> std::string {
 	auto real_path = fs::path{path};
@@ -1057,5 +1086,16 @@ auto shell::execute(std::string_view const expression, std::string_view const re
 	if (expression.empty()) { return success_v; }
 	auto const redirected_expression = std::format("{} > {} 2>&1", expression, redirect);
 	return execute(redirected_expression);
+}
+
+auto shell::open_directory(CString const path) -> ExitCode {
+	static constexpr std::string_view command_v =
+#if defined(_WIN32)
+		"explorer.exe";
+#else
+		"xdg-open";
+#endif
+	auto const expression = std::format(R"({} "{}")", command_v, path.as_view());
+	return execute(expression);
 }
 } // namespace klib
