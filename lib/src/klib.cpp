@@ -1087,4 +1087,15 @@ auto shell::execute(std::string_view const expression, std::string_view const re
 	auto const redirected_expression = std::format("{} > {} 2>&1", expression, redirect);
 	return execute(redirected_expression);
 }
+
+auto shell::open_directory(CString const path) -> ExitCode {
+	static constexpr std::string_view command_v =
+#if defined(_WIN32)
+		"explorer.exe";
+#else
+		"xdg-open";
+#endif
+	auto const expression = std::format(R"({} "{}")", command_v, path.as_view());
+	return execute(expression);
+}
 } // namespace klib
