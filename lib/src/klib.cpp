@@ -900,11 +900,12 @@ auto env::get_var(CString const key) -> CString {
 #include <cxxabi.h>
 #endif
 
-auto klib::demangled_name(std::type_info const& info) -> std::string {
+namespace {
+auto demangled_name_impl(char const* type_name) -> std::string {
 #if defined(KLIB_USE_CXA_DEMANGLE)
 	auto status = int{};
 	auto const buf = std::unique_ptr<char, decltype(std::free)*>{
-		abi::__cxa_demangle(info.name(), nullptr, nullptr, &status),
+		abi::__cxa_demangle(type_name, nullptr, nullptr, &status),
 		std::free,
 	};
 	if (status == 0) { return buf.get(); }
@@ -914,7 +915,7 @@ auto klib::demangled_name(std::type_info const& info) -> std::string {
 		"class ",
 		"enum ",
 	};
-	auto view = std::string_view{info.name()};
+	auto view = std::string_view{type_name};
 	for (std::string_view const prefix : prefixes_v) {
 		if (view.starts_with(prefix)) {
 			view.remove_prefix(prefix.size());
@@ -923,6 +924,10 @@ auto klib::demangled_name(std::type_info const& info) -> std::string {
 	}
 	return std::string{view};
 }
+} // namespace
+
+auto klib::demangled_name(std::type_info const& info) -> std::string { return demangled_name_impl(info.name()); }
+auto klib::demangled_name(std::type_index const index) -> std::string { return demangled_name_impl(index.name()); }
 
 #undef KLIB_USE_CXA_DEMANGLE
 

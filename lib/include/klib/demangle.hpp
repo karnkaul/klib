@@ -1,9 +1,11 @@
 #pragma once
 #include "klib/concepts.hpp"
 #include <string>
+#include <typeindex>
 #include <typeinfo>
 
 namespace klib {
+[[nodiscard]] auto demangled_name(std::type_index index) -> std::string;
 [[nodiscard]] auto demangled_name(std::type_info const& info) -> std::string;
 
 template <typename Type>
