@@ -42,26 +42,32 @@ TEST_CASE(from_chars_advance) {
 	EXPECT(fc.advance_if_all("com"));
 }
 
-TEST_CASE(str_to_num_int) {
+TEST_CASE(try_parse_hex) {
+	auto i = std::uint8_t{};
+	EXPECT(try_parse_to(i, "ff", 16));
+	EXPECT(i == 0xff);
+}
+
+TEST_CASE(string_to_number_int) {
 	static constexpr std::string_view forty_two_v{"42"};
 	static constexpr std::string_view minus_3_v{"-3"};
 	static constexpr std::string_view not_int_v{"foo"};
 
-	auto const u32 = str_to_num(forty_two_v, 0u);
+	auto const u32 = string_to_number(forty_two_v, 0u);
 	EXPECT(u32 == 42);
-	auto const i64 = str_to_num(minus_3_v, std::int64_t{-1});
+	auto const i64 = string_to_number(minus_3_v, std::int64_t{-1});
 	EXPECT(i64 == -3);
-	auto const foo = str_to_num(not_int_v, -1);
+	auto const foo = string_to_number(not_int_v, -1);
 	EXPECT(foo == -1);
 }
 
-TEST_CASE(str_to_num_float) {
+TEST_CASE(string_to_number_float) {
 	static constexpr std::string_view pi_v{"3.14"};
 	static constexpr std::string_view not_float_v{"bar"};
 
-	auto const pi = str_to_num(pi_v, -1.0f);
+	auto const pi = string_to_number(pi_v, -1.0f);
 	EXPECT(std::abs(pi - 3.14f) < 0.01f);
-	auto const bar = str_to_num(not_float_v, 0.0);
+	auto const bar = string_to_number(not_float_v, 0.0);
 	EXPECT(bar == 0.0);
 }
 } // namespace
