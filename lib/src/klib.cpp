@@ -8,11 +8,13 @@
 #include <cstddef>
 #include <deque>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <mutex>
 #include <numeric>
 #include <print>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <utility>
@@ -1135,6 +1137,66 @@ auto shell::open_directory(CString const path) -> ExitCode {
 	auto const expression = std::format(R"({} "{}")", command_v, path.as_view());
 	return execute(expression);
 }
+} // namespace klib
+
+#pragma endregion
+
+#pragma region glob
+
+#include "klib/string/glob.hpp"
+
+namespace klib {
+namespace glob {
+namespace {
+constexpr auto needs_escape_v = std::array{'.', '+', '^', '$', '|', '(', ')', '{', '}'};
+constexpr auto needs_dot_v = std::array{'*', '?'};
+
+[[nodiscard]] constexpr auto contains(std::span<char const> chars, char const c) { return std::ranges::find(chars, c) != chars.end(); }
+[[nodiscard]] constexpr auto needs_escape(char const c) { return contains(needs_escape_v, c); }
+[[nodiscard]] constexpr auto needs_dot(char const c) { return contains(needs_dot_v, c); }
+
+[[nodiscard]] constexpr auto is_open_brace(char const c) { return c == '['; }
+[[nodiscard]] constexpr auto is_glob_not(char const in) { return in == '!'; }
+constexpr auto regex_not_v{'^'};
+
+[[nodiscard]] auto to_regex(std::string_view const input) -> std::string {
+	auto ret = std::string{};
+
+	auto prev_was_open_brace = false;
+	for (char c : input) {
+		if (prev_was_open_brace && is_glob_not(c)) {
+			c = regex_not_v;
+		} else if (needs_escape(c)) {
+			ret.push_back('\\');
+		} else if (needs_dot(c)) {
+			ret.push_back('.');
+		}
+
+		prev_was_open_brace = is_open_brace(c);
+
+		ret.push_back(c);
+	}
+
+	return ret;
+}
+} // namespace
+} // namespace glob
+
+auto Glob::create(std::string_view const expression) -> std::expected<Glob, Error> {
+	if (expression.empty()) { return std::unexpected{Error{.what = "Empty glob expression"}}; }
+
+	auto const regex = glob::to_regex(expression);
+	auto ret = Glob{};
+	try {
+		ret.m_regex = std::regex{regex};
+	} catch (std::regex_error const& error) { return std::unexpected{Error{.what = error.what()}}; }
+
+	return ret;
+}
+
+auto Glob::is_exact_match(std::string_view const input) const -> bool { return std::regex_match(input.data(), input.data() + input.size(), m_regex); }
+
+auto Glob::is_partial_match(std::string_view const input) const -> bool { return std::regex_search(input.data(), input.data() + input.size(), m_regex); }
 } // namespace klib
 
 #pragma endregion
