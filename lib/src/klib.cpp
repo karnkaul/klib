@@ -8,11 +8,13 @@
 #include <cstddef>
 #include <deque>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <mutex>
 #include <numeric>
 #include <print>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <utility>
@@ -34,7 +36,7 @@
 
 namespace chr = std::chrono;
 
-// version
+#pragma region version
 
 #include "klib/string/from_chars.hpp"
 #include "klib/version.hpp"
@@ -51,7 +53,9 @@ auto klib::to_version(std::string_view text) -> Version {
 	return ret;
 }
 
-// task
+#pragma endregion
+
+#pragma region task
 
 #include "klib/task/queue.hpp"
 
@@ -109,7 +113,7 @@ struct Queue::Impl {
 		if (tasks.empty()) { return true; }
 		if (!can_enqueue(tasks.size())) { return false; }
 		for (auto* task : tasks) {
-			assert(!task->is_busy());
+			KLIB_ASSERT(!task->is_busy());
 			if (task->m_id == Task::Id::None) { task->m_id = Task::Id{++m_prev_id}; }
 			task->m_status = Task::Status::Queued;
 			task->m_busy = true;
@@ -149,7 +153,7 @@ struct Queue::Impl {
 		m_draining = true;
 		auto lock = std::unique_lock{m_mutex};
 		m_empty_cv.wait(lock, [this] { return m_queue.empty(); });
-		assert(m_queue.empty());
+		KLIB_ASSERT(m_queue.empty());
 		lock.unlock();
 		recreate_workers();
 		m_draining = false;
@@ -269,7 +273,9 @@ void Queue::drop_enqueued() {
 auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::hardware_concurrency()); }
 } // namespace klib
 
-// log
+#pragma endregion
+
+#pragma region log
 
 #include "klib/lerp_expr/scanner.hpp"
 #include "klib/log/file.hpp"
@@ -515,7 +521,7 @@ void log::print(Input const& input) {
 	}
 	std::fflush(out);
 
-#if defined(_WIN32)
+#ifdef _WIN32
 	OutputDebugStringA(text.c_str());
 #endif
 
@@ -523,7 +529,9 @@ void log::print(Input const& input) {
 }
 } // namespace klib
 
-// debug/trap
+#pragma endregion
+
+#pragma region debug_trap
 
 #include "klib/debug/trap.hpp"
 
@@ -539,7 +547,7 @@ namespace {
 
 		string_view tracer = line;
 		tracer.remove_prefix(prefix.size());
-		if (tracer.size() == 1 && tracer[0] == '0') [[likely]] {
+		if (tracer.size() == 1 && tracer.front() == '0') [[likely]] {
 			return false; // Not being traced.
 		}
 
@@ -568,14 +576,16 @@ namespace {
 } // namespace
 
 auto klib::is_debugger_attached() -> bool {
-#if defined(_WIN32)
+#ifdef _WIN32
 	return IsDebuggerPresent() != 0;
 #else
 	return glibcxx_is_debugger_present();
 #endif
 }
 
-// assert
+#pragma endregion
+
+#pragma region assert
 
 #include "klib/debug/assert.hpp"
 
@@ -631,7 +641,9 @@ void assertion::trigger_failure() {
 }
 } // namespace klib
 
-// text_table
+#pragma endregion
+
+#pragma region text_table
 
 #include "klib/cli/text_table.hpp"
 
@@ -734,7 +746,9 @@ auto TextTable::Builder::build() const -> TextTable {
 }
 } // namespace klib
 
-// vigenere
+#pragma endregion
+
+#pragma region vigenere
 
 #include "klib/vigenere_cipher.hpp"
 #include <functional>
@@ -774,13 +788,17 @@ class VigenereCipher {
 		KLIB_ASSERT(src.size() <= dst.size());
 		if (src.empty()) { return; }
 		for (std::size_t i = 0; i < src.size(); ++i) {
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 			auto const ch = src[i];
 			if (in_range(ch)) {
 				auto const j = i % m_key.size();
-				auto const distance = int(m_key[j]) - min_shift_v;
+				// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+				auto const distance = static_cast<int>(m_key[j]) - min_shift_v;
 				KLIB_ASSERT(distance >= 0);
+				// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 				dst[i] = func(src[i], distance);
 			} else {
+				// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 				dst[i] = src[i];
 			}
 		}
@@ -809,7 +827,9 @@ auto klib::vigenere_decrypt(std::string_view const key, std::string_view const i
 	return apply_vigenere(key, input, &VigenereCipher::decrypt);
 }
 
-// escape_code
+#pragma endregion
+
+#pragma region escape_code
 
 #include "klib/string/escape_code.hpp"
 
@@ -817,6 +837,7 @@ namespace klib {
 namespace escape {
 namespace {
 [[nodiscard]] auto colorify(Rgb const rgb, int const target) -> FixedString<> {
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	return {"{}{};2;{};{};{}{}", prefix_v, target, rgb[0], rgb[1], rgb[2], suffix_v};
 }
 } // namespace
@@ -847,11 +868,13 @@ auto FromChars::advance_if_all(std::string_view const str) -> bool {
 }
 } // namespace klib
 
-// env
+#pragma endregion
+
+#pragma region env
 
 #include "klib/env.hpp"
 
-#if defined(__linux__)
+#ifdef __linux__
 #include <linux/limits.h>
 #include <unistd.h>
 #endif
@@ -860,12 +883,12 @@ namespace klib {
 auto env::exe_path() -> std::string const& {
 	static std::string const ret = [] {
 		auto ret = std::string{};
-#if defined(_WIN32)
+#ifdef _WIN32
 		auto buffer = std::array<char, MAX_PATH>{};
 		DWORD length = GetModuleFileNameA(nullptr, buffer.data(), buffer.size());
 		if (length == 0) { return ret; }
 		ret = std::string{buffer.data(), length};
-#elif defined(__linux__)
+#elifdef __linux__
 		auto buffer = std::array<char, PATH_MAX>{};
 		ssize_t length = ::readlink("/proc/self/exe", buffer.data(), buffer.size());
 		if (length == -1) { return ret; }
@@ -878,20 +901,22 @@ auto env::exe_path() -> std::string const& {
 
 auto env::get_var(CString const key) -> CString {
 	if (key.as_view().empty()) { return {}; }
-#if _WIN32 && __clang__
+#if defined(_WIN32) && defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 	// NOLINTNEXTLINE(concurrency-mt-unsafe)
 	return std::getenv(key.c_str());
-#if _WIN32 && __clang__
+#if defined(_WIN32) && defined(__clang__)
 #pragma clang diagnostic pop
 #endif
 }
 
 } // namespace klib
 
-// demangle
+#pragma endregion
+
+#pragma region demangle
 
 #include "klib/demangle.hpp"
 
@@ -902,7 +927,7 @@ auto env::get_var(CString const key) -> CString {
 
 namespace {
 auto demangled_name_impl(char const* type_name) -> std::string {
-#if defined(KLIB_USE_CXA_DEMANGLE)
+#ifdef KLIB_USE_CXA_DEMANGLE
 	auto status = int{};
 	auto const buf = std::unique_ptr<char, decltype(std::free)*>{
 		abi::__cxa_demangle(type_name, nullptr, nullptr, &status),
@@ -931,7 +956,9 @@ auto klib::demangled_name(std::type_index const index) -> std::string { return d
 
 #undef KLIB_USE_CXA_DEMANGLE
 
-// file_io
+#pragma endregion
+
+#pragma region file_io
 
 #include "klib/file_io.hpp"
 #include <fstream>
@@ -984,7 +1011,9 @@ auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> 
 	return {};
 }
 
-// cli::prompt
+#pragma endregion
+
+#pragma region cli_prompt
 
 #include "klib/cli/prompt.hpp"
 #include "klib/debug/assert.hpp"
@@ -1053,14 +1082,17 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 	KLIB_ASSERT(selection == Selection::Line);
 	if (number == 0) { return Selection::Exit; }
 	KLIB_ASSERT(number > 0);
-	auto const index = std::size_t(number - 1);
+	auto const index = static_cast<std::size_t>(number - 1);
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	auto const& option = options[index];
 	if (option.callback) { option.callback(); }
 	return Selection::Option;
 }
 } // namespace klib
 
-// lerp_expr
+#pragma endregion
+
+#pragma region lerp_expr
 
 namespace klib::lerp_expr {
 void Token::Highlight::format_to(std::string& out, Token const& token, std::string_view const input_line) const {
@@ -1076,7 +1108,9 @@ auto Token::Highlight::format(Token const& token, std::string_view const input_l
 }
 } // namespace klib::lerp_expr
 
-// shell
+#pragma endregion
+
+#pragma region shell
 
 #include "klib/cli/shell.hpp"
 
@@ -1095,7 +1129,7 @@ auto shell::execute(std::string_view const expression, std::string_view const re
 
 auto shell::open_directory(CString const path) -> ExitCode {
 	static constexpr std::string_view command_v =
-#if defined(_WIN32)
+#ifdef _WIN32
 		"explorer.exe";
 #else
 		"xdg-open";
@@ -1104,3 +1138,65 @@ auto shell::open_directory(CString const path) -> ExitCode {
 	return execute(expression);
 }
 } // namespace klib
+
+#pragma endregion
+
+#pragma region glob
+
+#include "klib/string/glob.hpp"
+
+namespace klib {
+namespace glob {
+namespace {
+constexpr auto needs_escape_v = std::array{'.', '+', '^', '$', '|', '(', ')', '{', '}'};
+constexpr auto needs_dot_v = std::array{'*', '?'};
+
+[[nodiscard]] constexpr auto contains(std::span<char const> chars, char const c) { return std::ranges::find(chars, c) != chars.end(); }
+[[nodiscard]] constexpr auto needs_escape(char const c) { return contains(needs_escape_v, c); }
+[[nodiscard]] constexpr auto needs_dot(char const c) { return contains(needs_dot_v, c); }
+
+[[nodiscard]] constexpr auto is_open_brace(char const c) { return c == '['; }
+[[nodiscard]] constexpr auto is_glob_not(char const in) { return in == '!'; }
+constexpr auto regex_not_v{'^'};
+
+[[nodiscard]] auto to_regex(std::string_view const input) -> std::string {
+	auto ret = std::string{};
+
+	auto prev_was_open_brace = false;
+	for (char c : input) {
+		if (prev_was_open_brace && is_glob_not(c)) {
+			c = regex_not_v;
+		} else if (needs_escape(c)) {
+			ret.push_back('\\');
+		} else if (needs_dot(c)) {
+			ret.push_back('.');
+		}
+
+		prev_was_open_brace = is_open_brace(c);
+
+		ret.push_back(c);
+	}
+
+	return ret;
+}
+} // namespace
+} // namespace glob
+
+auto Glob::create(std::string_view const expression) -> std::expected<Glob, Error> {
+	if (expression.empty()) { return std::unexpected{Error{.what = "Empty glob expression"}}; }
+
+	auto const regex = glob::to_regex(expression);
+	auto ret = Glob{};
+	try {
+		ret.m_regex = std::regex{regex};
+	} catch (std::regex_error const& error) { return std::unexpected{Error{.what = error.what()}}; }
+
+	return ret;
+}
+
+auto Glob::is_exact_match(std::string_view const input) const -> bool { return std::regex_match(input.data(), input.data() + input.size(), m_regex); }
+
+auto Glob::is_partial_match(std::string_view const input) const -> bool { return std::regex_search(input.data(), input.data() + input.size(), m_regex); }
+} // namespace klib
+
+#pragma endregion
