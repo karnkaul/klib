@@ -14,7 +14,7 @@ struct Failure : std::exception {
 [[nodiscard]] auto get_fail_action() -> FailAction;
 void set_fail_action(FailAction value);
 
-#if defined(KLIB_USE_STACKTRACE)
+#ifdef KLIB_USE_STACKTRACE
 #define KLIB_GET_TRACE std::stacktrace::current
 #else
 #define KLIB_GET_TRACE std::stacktrace
@@ -27,13 +27,13 @@ void trigger_failure();
 } // namespace klib::assertion
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define KLIB_ASSERT(expr)                                                                                                                                      \
-	if (!bool(expr)) {                                                                                                                                         \
-		::klib::assertion::print(#expr);                                                                                                                       \
-		KLIB_DEBUG_TRAP();                                                                                                                                     \
-		::klib::assertion::trigger_failure();                                                                                                                  \
+#define KLIB_ASSERT(expr)                                                                                              \
+	if (!bool(expr)) {                                                                                                 \
+		::klib::assertion::print(#expr);                                                                               \
+		KLIB_DEBUG_TRAP();                                                                                             \
+		::klib::assertion::trigger_failure();                                                                          \
 	}
-#if defined(KLIB_DEBUG)
+#ifdef KLIB_DEBUG
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define KLIB_ASSERT_DEBUG(expr) KLIB_ASSERT(expr)
 #else

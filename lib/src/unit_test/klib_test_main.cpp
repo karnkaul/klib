@@ -5,7 +5,9 @@
 auto main(int argc, char** argv) -> int {
 	try {
 		auto args = std::span{argv, std::size_t(argc)};
-		if (!args.empty()) { args = args.subspan(1); }
+		if (!args.empty()) {
+			args = args.subspan(1);
+		}
 		std::println("- klib/unit_test {} -", klib::build_version_v);
 		return klib::unit_test::run_tests(args);
 	} catch (std::exception const& e) {

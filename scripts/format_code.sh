@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ ! $(clang-format --version) ]] && exit 1
+clang-format --version || exit 1
 
 if [[ ! -d ./lib ]]; then
   echo "Please run script from the project root"

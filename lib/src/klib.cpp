@@ -41,15 +41,20 @@ namespace chr = std::chrono;
 #include "klib/string/from_chars.hpp"
 #include "klib/version.hpp"
 
-auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc) -> format_context::iterator {
+auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc)
+	-> format_context::iterator {
 	return format_to(fc.out(), "v{}.{}.{}", version.major, version.minor, version.patch);
 }
 
 auto klib::to_version(std::string_view text) -> Version {
-	if (text.starts_with('v')) { text.remove_prefix(1); }
+	if (text.starts_with('v')) {
+		text.remove_prefix(1);
+	}
 	auto fc = FromChars{.text = text};
 	auto ret = Version{};
-	if (!fc(ret.major) || !fc.advance_if('.') || !fc(ret.minor) || !fc.advance_if('.') || !fc(ret.patch)) { return {}; }
+	if (!fc(ret.major) || !fc.advance_if('.') || !fc(ret.minor) || !fc.advance_if('.') || !fc(ret.patch)) {
+		return {};
+	}
 	return ret;
 }
 
@@ -104,17 +109,27 @@ struct Queue::Impl {
 	}
 
 	[[nodiscard]] auto can_enqueue(std::size_t const count) const -> bool {
-		if (m_draining) { return false; }
-		if (m_create_info.max_elements == ElementCount::Unbounded) { return true; }
+		if (m_draining) {
+			return false;
+		}
+		if (m_create_info.max_elements == ElementCount::Unbounded) {
+			return true;
+		}
 		return enqueued_count() + count < std::size_t(m_create_info.max_elements);
 	}
 
 	auto enqueue(std::span<Task* const> tasks) -> bool {
-		if (tasks.empty()) { return true; }
-		if (!can_enqueue(tasks.size())) { return false; }
+		if (tasks.empty()) {
+			return true;
+		}
+		if (!can_enqueue(tasks.size())) {
+			return false;
+		}
 		for (auto* task : tasks) {
 			KLIB_ASSERT(!task->is_busy());
-			if (task->m_id == Task::Id::None) { task->m_id = Task::Id{++m_prev_id}; }
+			if (task->m_id == Task::Id::None) {
+				task->m_id = Task::Id{++m_prev_id};
+			}
 			task->m_status = Task::Status::Queued;
 			task->m_busy = true;
 		}
@@ -130,20 +145,28 @@ struct Queue::Impl {
 	}
 
 	auto fork_join(std::span<Task* const> tasks) -> Task::Status {
-		if (tasks.empty()) { return Task::Status::None; }
-		if (!enqueue(tasks)) { return Task::Status::Dropped; }
+		if (tasks.empty()) {
+			return Task::Status::None;
+		}
+		if (!enqueue(tasks)) {
+			return Task::Status::Dropped;
+		}
 		auto const got_dropped = [](Task* task) {
 			task->wait();
 			return task->m_status == Task::Status::Dropped;
 		};
-		if (std::ranges::any_of(tasks, got_dropped)) { return Task::Status::Dropped; }
+		if (std::ranges::any_of(tasks, got_dropped)) {
+			return Task::Status::Dropped;
+		}
 		return Task::Status::Completed;
 	}
 
 	void pause() { m_paused = true; }
 
 	void resume() {
-		if (!m_paused) { return; }
+		if (!m_paused) {
+			return;
+		}
 		m_paused = false;
 		m_work_cv.notify_all();
 	}
@@ -152,7 +175,9 @@ struct Queue::Impl {
 		resume();
 		m_draining = true;
 		auto lock = std::unique_lock{m_mutex};
-		m_empty_cv.wait(lock, [this] { return m_queue.empty(); });
+		m_empty_cv.wait(lock, [this] {
+			return m_queue.empty();
+		});
 		KLIB_ASSERT(m_queue.empty());
 		lock.unlock();
 		recreate_workers();
@@ -161,7 +186,9 @@ struct Queue::Impl {
 
 	void drop_enqueued() {
 		auto lock = std::scoped_lock{m_mutex};
-		for (auto* task : m_queue) { task->do_drop(); }
+		for (auto* task : m_queue) {
+			task->do_drop();
+		}
 		m_queue.clear();
 	}
 
@@ -170,12 +197,16 @@ struct Queue::Impl {
 		auto const count = std::size_t(m_create_info.thread_count);
 		m_threads.reserve(count);
 		while (m_threads.size() < count) {
-			m_threads.emplace_back([this](std::stop_token const& s) { thunk(s); });
+			m_threads.emplace_back([this](std::stop_token const& s) {
+				thunk(s);
+			});
 		}
 	}
 
 	void destroy_workers() {
-		for (auto& thread : m_threads) { thread.request_stop(); }
+		for (auto& thread : m_threads) {
+			thread.request_stop();
+		}
 		m_work_cv.notify_all();
 		m_threads.clear();
 	}
@@ -188,14 +219,22 @@ struct Queue::Impl {
 	void thunk(std::stop_token const& s) {
 		while (!s.stop_requested()) {
 			auto lock = std::unique_lock{m_mutex};
-			if (!m_work_cv.wait(lock, s, [this] { return !m_paused && !m_queue.empty(); })) { return; }
-			if (s.stop_requested()) { return; }
+			if (!m_work_cv.wait(lock, s, [this] {
+					return !m_paused && !m_queue.empty();
+				})) {
+				return;
+			}
+			if (s.stop_requested()) {
+				return;
+			}
 			auto* task = m_queue.front();
 			m_queue.pop_front();
 			auto const observed_empty = m_queue.empty();
 			lock.unlock();
 			task->do_execute();
-			if (observed_empty) { m_empty_cv.notify_one(); }
+			if (observed_empty) {
+				m_empty_cv.notify_one();
+			}
 		}
 	}
 
@@ -220,17 +259,23 @@ Queue::Queue(CreateInfo create_info) {
 }
 
 auto Queue::thread_count() const -> ThreadCount {
-	if (!m_impl) { return ThreadCount{0}; }
+	if (!m_impl) {
+		return ThreadCount{0};
+	}
 	return m_impl->thread_count();
 }
 
 auto Queue::enqueued_count() const -> std::size_t {
-	if (!m_impl) { return 0; }
+	if (!m_impl) {
+		return 0;
+	}
 	return m_impl->enqueued_count();
 }
 
 auto Queue::can_enqueue(std::size_t const count) const -> bool {
-	if (!m_impl) { return false; }
+	if (!m_impl) {
+		return false;
+	}
 	return m_impl->can_enqueue(count);
 }
 
@@ -240,32 +285,44 @@ auto Queue::enqueue(Task& task) -> bool {
 }
 
 auto Queue::enqueue(std::span<Task* const> tasks) -> bool {
-	if (!m_impl) { return false; }
+	if (!m_impl) {
+		return false;
+	}
 	return m_impl->enqueue(tasks);
 }
 
 auto Queue::fork_join(std::span<Task* const> tasks) -> Task::Status {
-	if (!m_impl) { return Task::Status::None; }
+	if (!m_impl) {
+		return Task::Status::None;
+	}
 	return m_impl->fork_join(tasks);
 }
 
 void Queue::pause() {
-	if (!m_impl) { return; }
+	if (!m_impl) {
+		return;
+	}
 	m_impl->pause();
 }
 
 void Queue::resume() {
-	if (!m_impl) { return; }
+	if (!m_impl) {
+		return;
+	}
 	m_impl->resume();
 }
 
 void Queue::drain_and_wait() {
-	if (!m_impl) { return; }
+	if (!m_impl) {
+		return;
+	}
 	m_impl->drain_and_wait();
 }
 
 void Queue::drop_enqueued() {
-	if (!m_impl) { return; }
+	if (!m_impl) {
+		return;
+	}
 	m_impl->drop_enqueued();
 }
 } // namespace task
@@ -288,7 +345,9 @@ namespace log {
 namespace {
 [[maybe_unused]] constexpr auto to_filename(std::string_view path) -> std::string_view {
 	auto const i = path.find_last_of("\\/");
-	if (i == std::string_view::npos) { return path; }
+	if (i == std::string_view::npos) {
+		return path;
+	}
 	return path.substr(i + 1);
 }
 
@@ -296,14 +355,20 @@ struct FileImpl {
 	auto start(std::string path_) -> bool {
 		stop();
 		auto file = std::ofstream{path_};
-		if (!file.is_open()) { return false; }
+		if (!file.is_open()) {
+			return false;
+		}
 		path = std::move(path_);
-		m_thread = std::jthread{[this](std::stop_token const& s) { thunk(s); }};
+		m_thread = std::jthread{[this](std::stop_token const& s) {
+			thunk(s);
+		}};
 		return true;
 	}
 
 	void stop() {
-		if (!is_running()) { return; }
+		if (!is_running()) {
+			return;
+		}
 		m_thread.request_stop();
 		m_thread.join();
 		path.clear();
@@ -313,7 +378,9 @@ struct FileImpl {
 	[[nodiscard]] auto is_running() const -> bool { return m_thread.joinable(); }
 
 	void print(CString const line) {
-		if (!is_running()) { return; }
+		if (!is_running()) {
+			return;
+		}
 		auto lock = std::unique_lock{m_mutex};
 		m_queue.emplace_back(line.as_view());
 		lock.unlock();
@@ -326,11 +393,15 @@ struct FileImpl {
 	void thunk(std::stop_token const& s) {
 		while (!s.stop_requested()) {
 			auto lock = std::unique_lock{m_mutex};
-			m_cv.wait(lock, s, [this] { return !m_queue.empty(); });
+			m_cv.wait(lock, s, [this] {
+				return !m_queue.empty();
+			});
 			auto queue = std::move(m_queue);
 			lock.unlock();
 			auto file = std::ofstream{path, std::ios::app};
-			for (auto const& line : queue) { file << line; }
+			for (auto const& line : queue) {
+				file << line;
+			}
 		}
 	}
 
@@ -362,10 +433,16 @@ class Formatter {
 		auto ret = std::string{};
 		ret.reserve(input.message.size() + reserve_v);
 		auto const visitor = Visitor{
-			[&](std::string_view const s) { ret.append(s); },
-			[&](Identifier const i) { format_identifier(ret, input, i); },
+			[&](std::string_view const s) {
+				ret.append(s);
+			},
+			[&](Identifier const i) {
+				format_identifier(ret, input, i);
+			},
 		};
-		for (auto const& atom : m_atoms) { std::visit(visitor, atom); }
+		for (auto const& atom : m_atoms) {
+			std::visit(visitor, atom);
+		}
 		return ret;
 	}
 
@@ -374,13 +451,27 @@ class Formatter {
 	using Atom = std::variant<std::string_view, Identifier>;
 
 	[[nodiscard]] static constexpr auto to_identifier(std::string_view const word) -> Identifier {
-		if (word == "level") { return Identifier::Level; }
-		if (word == "tag") { return Identifier::Tag; }
-		if (word == "thread_id") { return Identifier::ThreadId; }
-		if (word == "message") { return Identifier::Message; }
-		if (word == "timestamp") { return Identifier::Timestamp; }
-		if (word == "file_name") { return Identifier::FileName; }
-		if (word == "line_number") { return Identifier::LineNumber; }
+		if (word == "level") {
+			return Identifier::Level;
+		}
+		if (word == "tag") {
+			return Identifier::Tag;
+		}
+		if (word == "thread_id") {
+			return Identifier::ThreadId;
+		}
+		if (word == "message") {
+			return Identifier::Message;
+		}
+		if (word == "timestamp") {
+			return Identifier::Timestamp;
+		}
+		if (word == "file_name") {
+			return Identifier::FileName;
+		}
+		if (word == "line_number") {
+			return Identifier::LineNumber;
+		}
 		return Identifier::None;
 	}
 
@@ -395,7 +486,8 @@ class Formatter {
 		}
 		case Identifier::Message: out.append(input.message); break;
 		case Identifier::Timestamp: {
-			auto const timestamp = chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
+			auto const timestamp =
+				chr::zoned_time{chr::current_zone(), chr::time_point_cast<chr::seconds>(chr::system_clock::now())};
 			std::format_to(std::back_inserter(out), "{:%T}", timestamp);
 			break;
 		}
@@ -470,7 +562,9 @@ auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-v
 } // namespace
 
 File::File(std::string path) : m_path(std::move(path)) {
-	if (m_path.empty()) { return; }
+	if (m_path.empty()) {
+		return;
+	}
 	g_storage.attach_file(m_path);
 }
 
@@ -485,7 +579,9 @@ auto log::get_max_level() -> Level { return g_storage.max_level; }
 void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
 auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
 
-void log::set_interpolate_format(std::string interpolate_format) { g_storage.set_interpolate_format(std::move(interpolate_format)); }
+void log::set_interpolate_format(std::string interpolate_format) {
+	g_storage.set_interpolate_format(std::move(interpolate_format));
+}
 
 auto log::get_thread_id() -> ThreadId {
 	static auto s_id = std::atomic<std::underlying_type_t<ThreadId>>{};
@@ -500,7 +596,9 @@ auto log::format(Input const& input) -> std::string {
 }
 
 void log::print(Input const& input) {
-	if (input.level > g_storage.max_level) { return; }
+	if (input.level > g_storage.max_level) {
+		return;
+	}
 
 	auto const text = format(input);
 
@@ -543,7 +641,9 @@ namespace {
 	ifstream in("/proc/self/status");
 	string line;
 	while (std::getline(in, line)) {
-		if (!line.starts_with(prefix)) { continue; }
+		if (!line.starts_with(prefix)) {
+			continue;
+		}
 
 		string_view tracer = line;
 		tracer.remove_prefix(prefix.size());
@@ -569,7 +669,9 @@ namespace {
 		}
 
 		static constexpr auto known_debuggers = std::array{"gdb", "gdbserver", "lldb-server"};
-		return std::ranges::any_of(known_debuggers, [cmd](char const* dbg) { return cmd.ends_with(dbg); });
+		return std::ranges::any_of(known_debuggers, [cmd](char const* dbg) {
+			return cmd.ends_with(dbg);
+		});
 	}
 	return false;
 }
@@ -601,8 +703,12 @@ auto is_internal(std::string_view const trace_description) -> bool {
 		"start_call_main",
 		"register_frame_ctor",
 	};
-	if (trace_description.empty()) { return true; }
-	return std::ranges::any_of(phrases_v, [trace_description](std::string_view const phrase) { return trace_description.contains(phrase); });
+	if (trace_description.empty()) {
+		return true;
+	}
+	return std::ranges::any_of(phrases_v, [trace_description](std::string_view const phrase) {
+		return trace_description.contains(phrase);
+	});
 }
 } // namespace
 } // namespace assertion
@@ -615,11 +721,15 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 	if constexpr (use_stacktrace_v) {
 		for (auto const& entry : trace) {
 			auto const description = entry.description();
-			if (is_internal(description)) { return; }
+			if (is_internal(description)) {
+				return;
+			}
 			std::format_to(std::back_inserter(out), "  {}", description);
 			if constexpr (debug_v) {
 				std::string const file = entry.source_file();
-				if (!file.empty() && entry.source_line() > 0) { std::format_to(std::back_inserter(out), " [{}:{}]", file, entry.source_line()); }
+				if (!file.empty() && entry.source_line() > 0) {
+					std::format_to(std::back_inserter(out), " [{}:{}]", file, entry.source_line());
+				}
 			}
 			out += '\n';
 		}
@@ -654,12 +764,17 @@ void TextTable::push_row(std::vector<std::string> row) {
 }
 
 void TextTable::append_to(std::string& out) const {
-	for (auto const& column : m_columns) { column.fmt = make_column_fmt(column); }
+	for (auto const& column : m_columns) {
+		column.fmt = make_column_fmt(column);
+	}
 
 	static constexpr std::string_view per_column_spacing_v{"|  "};
 	static constexpr std::string_view end_spacing_v{"|"};
 	auto const spacing = (m_columns.size() * per_column_spacing_v.size()) + end_spacing_v.size();
-	auto const total_width = std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) { return s + c.max_width; });
+	auto const total_width =
+		std::accumulate(m_columns.begin(), m_columns.end(), spacing, [](std::size_t const s, Column const& c) {
+			return s + c.max_width;
+		});
 	append_border(out, total_width);
 	append_titles(out);
 	append_separator(out, total_width);
@@ -675,7 +790,9 @@ void TextTable::append_to(std::string& out) const {
 			append_cell(out, column.fmt, cell);
 		}
 
-		if (!no_border) { out += '|'; }
+		if (!no_border) {
+			out += '|';
+		}
 		out += '\n';
 	}
 	append_border(out, total_width);
@@ -705,20 +822,32 @@ auto TextTable::make_column_fmt(Column const& column) const -> std::string {
 void TextTable::update_column_widths() {
 	KLIB_ASSERT(!m_rows.empty());
 	auto const& row = m_rows.back();
-	if (row.empty()) { return; }
-	for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) { column.max_width = std::max(column.max_width, cell.size()); }
+	if (row.empty()) {
+		return;
+	}
+	for (auto [column, cell] : std::ranges::zip_view(m_columns, row)) {
+		column.max_width = std::max(column.max_width, cell.size());
+	}
 }
 
 void TextTable::append_border(std::string& out, std::size_t const width) const {
-	if (no_border || width < 2) { return; }
+	if (no_border || width < 2) {
+		return;
+	}
 	out += '+';
-	for (std::size_t i = 0; i < width - 2; ++i) { out += '-'; }
+	for (std::size_t i = 0; i < width - 2; ++i) {
+		out += '-';
+	}
 	out += "+\n";
 }
 
 void TextTable::append_separator(std::string& out, std::size_t const width) const {
-	if (no_border) { return; }
-	for (std::size_t i = 0; i < width; ++i) { out += '-'; }
+	if (no_border) {
+		return;
+	}
+	for (std::size_t i = 0; i < width; ++i) {
+		out += '-';
+	}
 	out += '\n';
 }
 
@@ -727,8 +856,12 @@ void TextTable::append_cell(std::string& out, std::string_view const fmt, std::s
 }
 
 void TextTable::append_titles(std::string& out) const {
-	for (auto const& column : m_columns) { append_cell(out, column.fmt, column.title); }
-	if (!no_border) { out += '|'; }
+	for (auto const& column : m_columns) {
+		append_cell(out, column.fmt, column.title);
+	}
+	if (!no_border) {
+		out += '|';
+	}
 	out += '\n';
 }
 
@@ -767,17 +900,23 @@ class VigenereCipher {
 	static constexpr auto max_shift_v = 126;
 	static constexpr auto shift_mod_v = max_shift_v - min_shift_v + 1;
 
-	[[nodiscard]] static constexpr auto in_range(char const ch) -> bool { return int(ch) >= min_shift_v && int(ch) <= max_shift_v; }
+	[[nodiscard]] static constexpr auto in_range(char const ch) -> bool {
+		return int(ch) >= min_shift_v && int(ch) <= max_shift_v;
+	}
 
 	[[nodiscard]] static constexpr auto shift(char const ch, int const distance) -> char {
-		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		if (ch < min_shift_v || ch > max_shift_v) {
+			return ch;
+		}
 		auto const ret = int(ch) - min_shift_v + distance;
 		KLIB_ASSERT(ret >= 0);
 		return char((ret % shift_mod_v) + min_shift_v);
 	}
 
 	[[nodiscard]] static constexpr auto unshift(char const ch, int const distance) -> char {
-		if (ch < min_shift_v || ch > max_shift_v) { return ch; }
+		if (ch < min_shift_v || ch > max_shift_v) {
+			return ch;
+		}
 		auto const ret = int(ch) + shift_mod_v - min_shift_v - distance;
 		KLIB_ASSERT(ret >= 0);
 		return char((ret % shift_mod_v) + min_shift_v);
@@ -786,7 +925,9 @@ class VigenereCipher {
 	template <typename F>
 	constexpr void process(std::string_view const src, std::span<char> dst, F func) const {
 		KLIB_ASSERT(src.size() <= dst.size());
-		if (src.empty()) { return; }
+		if (src.empty()) {
+			return;
+		}
 		for (std::size_t i = 0; i < src.size(); ++i) {
 			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 			auto const ch = src[i];
@@ -851,18 +992,26 @@ auto escape::background(Rgb const rgb) -> FixedString<> { return colorify(rgb, 4
 
 namespace klib {
 auto FromChars::advance_if(char const ch) -> bool {
-	if (text.empty() || text.front() != ch) { return false; }
+	if (text.empty() || text.front() != ch) {
+		return false;
+	}
 	text.remove_prefix(1);
 	return true;
 }
 
 auto FromChars::advance_if_any(std::string_view const chars) -> bool {
-	if (chars.empty() || text.empty()) { return false; }
-	return std::ranges::any_of(chars, [this](char const ch) { return advance_if(ch); });
+	if (chars.empty() || text.empty()) {
+		return false;
+	}
+	return std::ranges::any_of(chars, [this](char const ch) {
+		return advance_if(ch);
+	});
 }
 
 auto FromChars::advance_if_all(std::string_view const str) -> bool {
-	if (text.empty() || str.empty() || !text.starts_with(str)) { return false; }
+	if (text.empty() || str.empty() || !text.starts_with(str)) {
+		return false;
+	}
 	text.remove_prefix(str.size());
 	return true;
 }
@@ -886,12 +1035,16 @@ auto env::exe_path() -> std::string const& {
 #ifdef _WIN32
 		auto buffer = std::array<char, MAX_PATH>{};
 		DWORD length = GetModuleFileNameA(nullptr, buffer.data(), buffer.size());
-		if (length == 0) { return ret; }
+		if (length == 0) {
+			return ret;
+		}
 		ret = std::string{buffer.data(), length};
 #elifdef __linux__
 		auto buffer = std::array<char, PATH_MAX>{};
 		ssize_t length = ::readlink("/proc/self/exe", buffer.data(), buffer.size());
-		if (length == -1) { return ret; }
+		if (length == -1) {
+			return ret;
+		}
 		ret = std::string{buffer.data(), std::size_t(length)};
 #endif
 		return ret;
@@ -900,7 +1053,9 @@ auto env::exe_path() -> std::string const& {
 }
 
 auto env::get_var(CString const key) -> CString {
-	if (key.as_view().empty()) { return {}; }
+	if (key.as_view().empty()) {
+		return {};
+	}
 #if defined(_WIN32) && defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -933,7 +1088,9 @@ auto demangled_name_impl(char const* type_name) -> std::string {
 		abi::__cxa_demangle(type_name, nullptr, nullptr, &status),
 		std::free,
 	};
-	if (status == 0) { return buf.get(); }
+	if (status == 0) {
+		return buf.get();
+	}
 #endif
 	static constexpr auto prefixes_v = std::array{
 		"struct ",
@@ -971,7 +1128,9 @@ template <typename ContainerT>
 	requires(sizeof(typename ContainerT::value_type) == 1)
 auto read_file_bytes_impl(ContainerT& out, CString const path) -> bool {
 	auto file = std::ifstream{path.c_str(), std::ios::binary | std::ios::ate};
-	if (!file.is_open()) { return false; }
+	if (!file.is_open()) {
+		return false;
+	}
 	auto const size = file.tellg();
 	file.seekg(0, std::ios::beg);
 	out.resize(std::size_t(size));
@@ -983,13 +1142,17 @@ auto read_file_bytes_impl(ContainerT& out, CString const path) -> bool {
 
 } // namespace klib
 
-auto klib::read_file_bytes_to(std::vector<std::byte>& out, CString const path) -> bool { return read_file_bytes_impl(out, path); }
+auto klib::read_file_bytes_to(std::vector<std::byte>& out, CString const path) -> bool {
+	return read_file_bytes_impl(out, path);
+}
 
 auto klib::read_file_bytes_to(std::string& out, CString const path) -> bool { return read_file_bytes_impl(out, path); }
 
 auto klib::write_bytes_to_file(std::span<std::byte const> bytes, CString const path) -> bool {
 	auto file = std::ofstream{path.c_str(), std::ios::binary};
-	if (!file) { return false; }
+	if (!file) {
+		return false;
+	}
 	void const* data = bytes.data();
 	file.write(static_cast<char const*>(data), std::streamsize(bytes.size()));
 	return file.good();
@@ -999,10 +1162,14 @@ auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> 
 	auto real_path = fs::path{path};
 	auto err = std::error_code{};
 	for (auto iter = 0; iter < max_iters; ++iter) {
-		if (real_path.empty()) { return {}; }
+		if (real_path.empty()) {
+			return {};
+		}
 		if (fs::is_symlink(real_path, err)) {
 			real_path = fs::read_symlink(real_path, err);
-			if (err != std::errc{}) { return {}; }
+			if (err != std::errc{}) {
+				return {};
+			}
 			continue;
 		}
 
@@ -1032,7 +1199,9 @@ auto prompt::line(std::string_view const message, std::move_only_function<bool(s
 		std::print("\n{}\n> ", message);
 		std::getline(std::cin, line);
 		std::println();
-		if (pred(std::move(line))) { return Selection::Line; }
+		if (pred(std::move(line))) {
+			return Selection::Line;
+		}
 		std::println(stderr, "invalid input");
 	}
 	return Selection::Invalid;
@@ -1049,43 +1218,59 @@ auto prompt::confirm(std::string_view const message) -> Selection {
 		return false;
 	};
 	auto const selection = line(msg, pred);
-	if (selection == Selection::Invalid) { return selection; }
+	if (selection == Selection::Invalid) {
+		return selection;
+	}
 
 	KLIB_ASSERT(selection == Selection::Line);
-	if (input == "y") { return Selection::Confirm; }
+	if (input == "y") {
+		return Selection::Confirm;
+	}
 	return Selection::Exit;
 }
 
 auto prompt::options(std::span<Option const> options, bool const empty_is_exit) -> Selection {
 	auto message = std::string{};
 	auto number = 0;
-	for (auto const& option : options) { std::format_to(std::back_inserter(message), "{}) {}\n", ++number, option.text); }
+	for (auto const& option : options) {
+		std::format_to(std::back_inserter(message), "{}) {}\n", ++number, option.text);
+	}
 	message += "q) quit";
 
 	auto const pred = [&](std::string_view input) {
 		if (input.empty()) {
-			if (!empty_is_exit) { return false; }
+			if (!empty_is_exit) {
+				return false;
+			}
 			input = "q";
 		}
 		if (input == "q") {
 			number = 0;
 			return true;
 		}
-		if (!FromChars{.text = input}(number)) { return false; }
+		if (!FromChars{.text = input}(number)) {
+			return false;
+		}
 
 		return number >= 1 && number <= int(options.size());
 	};
 
 	auto const selection = line(message, pred);
-	if (selection == Selection::Invalid) { return selection; }
+	if (selection == Selection::Invalid) {
+		return selection;
+	}
 
 	KLIB_ASSERT(selection == Selection::Line);
-	if (number == 0) { return Selection::Exit; }
+	if (number == 0) {
+		return Selection::Exit;
+	}
 	KLIB_ASSERT(number > 0);
 	auto const index = static_cast<std::size_t>(number - 1);
 	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	auto const& option = options[index];
-	if (option.callback) { option.callback(); }
+	if (option.callback) {
+		option.callback();
+	}
 	return Selection::Option;
 }
 } // namespace klib
@@ -1096,9 +1281,13 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 
 namespace klib::lerp_expr {
 void Token::Highlight::format_to(std::string& out, Token const& token, std::string_view const input_line) const {
-	if (!out.empty()) { out.push_back('\n'); }
+	if (!out.empty()) {
+		out.push_back('\n');
+	}
 	std::format_to(std::back_inserter(out), "{}{}\n{}{:>{}}", prefix, input_line, prefix, ' ', token.start_index);
-	for (auto i = 0uz; i < token.lexeme.size(); ++i) { out.push_back(caret); }
+	for (auto i = 0uz; i < token.lexeme.size(); ++i) {
+		out.push_back(caret);
+	}
 }
 
 auto Token::Highlight::format(Token const& token, std::string_view const input_line) const -> std::string {
@@ -1116,13 +1305,17 @@ auto Token::Highlight::format(Token const& token, std::string_view const input_l
 
 namespace klib {
 auto shell::execute(CString const expression) -> ExitCode {
-	if (expression.as_view().empty()) { return success_v; }
+	if (expression.as_view().empty()) {
+		return success_v;
+	}
 	// NOLINTNEXTLINE(concurrency-mt-unsafe)
 	return ExitCode(std::system(expression.c_str()));
 }
 
 auto shell::execute(std::string_view const expression, std::string_view const redirect) -> ExitCode {
-	if (expression.empty()) { return success_v; }
+	if (expression.empty()) {
+		return success_v;
+	}
 	auto const redirected_expression = std::format("{} > {} 2>&1", expression, redirect);
 	return execute(redirected_expression);
 }
@@ -1151,7 +1344,9 @@ namespace {
 constexpr auto needs_escape_v = std::array{'.', '+', '^', '$', '|', '(', ')', '{', '}'};
 constexpr auto needs_dot_v = std::array{'*', '?'};
 
-[[nodiscard]] constexpr auto contains(std::span<char const> chars, char const c) { return std::ranges::find(chars, c) != chars.end(); }
+[[nodiscard]] constexpr auto contains(std::span<char const> chars, char const c) {
+	return std::ranges::find(chars, c) != chars.end();
+}
 [[nodiscard]] constexpr auto needs_escape(char const c) { return contains(needs_escape_v, c); }
 [[nodiscard]] constexpr auto needs_dot(char const c) { return contains(needs_dot_v, c); }
 
@@ -1183,20 +1378,28 @@ constexpr auto regex_not_v{'^'};
 } // namespace glob
 
 auto Glob::create(std::string_view const expression) -> std::expected<Glob, Error> {
-	if (expression.empty()) { return std::unexpected{Error{.what = "Empty glob expression"}}; }
+	if (expression.empty()) {
+		return std::unexpected{Error{.what = "Empty glob expression"}};
+	}
 
 	auto const regex = glob::to_regex(expression);
 	auto ret = Glob{};
 	try {
 		ret.m_regex = std::regex{regex};
-	} catch (std::regex_error const& error) { return std::unexpected{Error{.what = error.what()}}; }
+	} catch (std::regex_error const& error) {
+		return std::unexpected{Error{.what = error.what()}};
+	}
 
 	return ret;
 }
 
-auto Glob::is_exact_match(std::string_view const input) const -> bool { return std::regex_match(input.data(), input.data() + input.size(), m_regex); }
+auto Glob::is_exact_match(std::string_view const input) const -> bool {
+	return std::regex_match(input.data(), input.data() + input.size(), m_regex);
+}
 
-auto Glob::is_partial_match(std::string_view const input) const -> bool { return std::regex_search(input.data(), input.data() + input.size(), m_regex); }
+auto Glob::is_partial_match(std::string_view const input) const -> bool {
+	return std::regex_search(input.data(), input.data() + input.size(), m_regex);
+}
 } // namespace klib
 
 #pragma endregion

@@ -11,8 +11,10 @@
 #define KLIB_EXEC_DEBUG_TRAP()
 #endif
 
-#define KLIB_DEBUG_TRAP()                                                                                                                                      \
-	if (::klib::is_debugger_attached()) { KLIB_EXEC_DEBUG_TRAP(); }
+#define KLIB_DEBUG_TRAP()                                                                                              \
+	if (::klib::is_debugger_attached()) {                                                                              \
+		KLIB_EXEC_DEBUG_TRAP();                                                                                        \
+	}
 
 namespace klib {
 [[nodiscard]] auto is_debugger_attached() -> bool;

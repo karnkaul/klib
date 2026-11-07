@@ -13,7 +13,8 @@ class FixedString {
 
 	template <typename... Args>
 	explicit(false) FixedString(std::format_string<Args...> fmt, Args&&... args) {
-		auto const [out, _] = std::format_to_n(m_buf.data(), std::iter_difference_t<char*>(MaxLength), fmt, std::forward<Args>(args)...);
+		auto const [out, _] = std::format_to_n(
+			m_buf.data(), static_cast<std::iter_difference_t<char*>>(MaxLength), fmt, std::forward<Args>(args)...);
 		m_size = std::size_t(out - m_buf.data()); // NOLINT(cppcoreguidelines-prefer-member-initializer)
 	}
 
@@ -31,7 +32,8 @@ class FixedString {
 		m_size = 0;
 	}
 
-	constexpr auto substr(std::size_t const pos, std::size_t const count = std::string_view::npos) const -> FixedString {
+	constexpr auto substr(std::size_t const pos, std::size_t const count = std::string_view::npos) const
+		-> FixedString {
 		return FixedString{as_view().substr(pos, count)};
 	}
 

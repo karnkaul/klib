@@ -12,21 +12,45 @@ static_assert([] {
 	auto scanner = Scanner{text};
 	auto token = Token{};
 
-	if (!scanner.scan_next(token)) { return false; }
-	if (token.type != Token::Type::String) { return false; }
-	if (token.lexeme != "Abc - ") { return false; }
+	if (!scanner.scan_next(token)) {
+		return false;
+	}
+	if (token.type != Token::Type::String) {
+		return false;
+	}
+	if (token.lexeme != "Abc - ") {
+		return false;
+	}
 
-	if (!scanner.scan_next(token)) { return false; }
-	if (token.type != Token::Type::Identifier) { return false; }
-	if (token.lexeme != "foo") { return false; }
+	if (!scanner.scan_next(token)) {
+		return false;
+	}
+	if (token.type != Token::Type::Identifier) {
+		return false;
+	}
+	if (token.lexeme != "foo") {
+		return false;
+	}
 
-	if (!scanner.scan_next(token)) { return false; }
-	if (token.type != Token::Type::String) { return false; }
-	if (token.lexeme != " bar.") { return false; }
+	if (!scanner.scan_next(token)) {
+		return false;
+	}
+	if (token.type != Token::Type::String) {
+		return false;
+	}
+	if (token.lexeme != " bar.") {
+		return false;
+	}
 
-	if (!scanner.scan_next(token)) { return false; }
-	if (token.type != Token::Type::Identifier) { return false; }
-	if (token.lexeme != "ext") { return false; }
+	if (!scanner.scan_next(token)) {
+		return false;
+	}
+	if (token.type != Token::Type::Identifier) {
+		return false;
+	}
+	if (token.lexeme != "ext") {
+		return false;
+	}
 
 	return !scanner.scan_next(token);
 }());
@@ -41,14 +65,22 @@ TEST_CASE(lerp_expr_interpolate) {
 	map["source_line"] = "42";
 	auto const format_identifier = [&](std::string& out, Token const& identifier) {
 		auto const it = map.find(identifier.lexeme);
-		if (it == map.end()) { return; }
+		if (it == map.end()) {
+			return;
+		}
 		out.append(it->second);
 	};
 	static_assert(FormatIdentifierT<decltype(format_identifier)>);
 
-	auto const formatted = interpolate("[{level}] [{tag}] {message} [{timestamp}] [{source_file}:{source_line}]", format_identifier);
-	auto const expected =
-		std::format("[{}] [{}] {} [{}] [{}:{}]", map["level"], map["tag"], map["message"], map["timestamp"], map["source_file"], map["source_line"]);
+	auto const formatted =
+		interpolate("[{level}] [{tag}] {message} [{timestamp}] [{source_file}:{source_line}]", format_identifier);
+	auto const expected = std::format("[{}] [{}] {} [{}] [{}:{}]",
+									  map["level"],
+									  map["tag"],
+									  map["message"],
+									  map["timestamp"],
+									  map["source_file"],
+									  map["source_line"]);
 	EXPECT(formatted == expected);
 }
 

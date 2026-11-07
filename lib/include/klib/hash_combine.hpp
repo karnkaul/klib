@@ -9,7 +9,9 @@ namespace klib {
 /// https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine</a>
 /// \param out_seed mutable reference to an existing seed (hash value).
 /// \param hash Hash to combine.
-constexpr void hash_combine(std::size_t& out_seed, std::size_t const hash) { out_seed ^= hash + 0x9e3779b9 + (out_seed << 6) + (out_seed >> 2); }
+constexpr void hash_combine(std::size_t& out_seed, std::size_t const hash) {
+	out_seed ^= hash + 0x9e3779b9 + (out_seed << 6) + (out_seed >> 2);
+}
 
 /// \brief Combine hashes of multiple objects into given seed.
 /// \param out_seed Mutable reference to existing seed (hash value).
