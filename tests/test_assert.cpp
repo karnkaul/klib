@@ -8,14 +8,18 @@ TEST_CASE(assert) {
 	auto thrown = false;
 	try {
 		KLIB_ASSERT_DEBUG(value_v == -5);
-	} catch (klib::assertion::Failure const& /*e*/) { thrown = true; }
+	} catch (klib::assertion::Failure const& /*e*/) {
+		thrown = true;
+	}
 	EXPECT(thrown == klib::debug_v);
 
 	klib::assertion::set_fail_action(klib::assertion::FailAction::None);
 	thrown = false;
 	try {
 		KLIB_ASSERT(value_v == -5);
-	} catch (klib::assertion::Failure const& /*e*/) { thrown = true; }
+	} catch (klib::assertion::Failure const& /*e*/) {
+		thrown = true;
+	}
 	EXPECT(thrown == false);
 }
 } // namespace

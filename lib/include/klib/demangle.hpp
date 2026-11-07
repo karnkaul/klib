@@ -10,7 +10,9 @@ namespace klib {
 
 template <typename Type>
 [[nodiscard]] auto demangled_name() -> std::string const& {
-	static std::string const ret = [] { return demangled_name(typeid(Type)); }();
+	static std::string const ret = [] {
+		return demangled_name(typeid(Type));
+	}();
 	return ret;
 }
 

@@ -6,10 +6,16 @@ using namespace klib;
 
 static_assert([] {
 	auto str = FixedString<16>{};
-	if (!str.is_empty()) { return false; }
-	if (!str.as_view().empty()) { return false; }
+	if (!str.is_empty()) {
+		return false;
+	}
+	if (!str.as_view().empty()) {
+		return false;
+	}
 	str = "hello world";
-	if (str != "hello world") { return false; }
+	if (str != "hello world") {
+		return false;
+	}
 	str = {};
 	return str.is_empty();
 }());

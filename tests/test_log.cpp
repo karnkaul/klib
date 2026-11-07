@@ -35,9 +35,13 @@ TEST_CASE(log) {
 		auto line = std::string{};
 		EXPECT(std::getline(file, line));
 		EXPECT(line.contains("expect in log file"));
-		if (!line.empty()) { std::println("{}", line); }
+		if (!line.empty()) {
+			std::println("{}", line);
+		}
 		EXPECT(!std::getline(file, line));
-		if (!line.empty()) { std::println("{}", line); }
+		if (!line.empty()) {
+			std::println("{}", line);
+		}
 	}
 }
 } // namespace

@@ -7,7 +7,9 @@ TEST_CASE(scoped_defer_exec) {
 	auto value = 0;
 	{
 		value = 1;
-		auto to42 = ScopedDefer{[&] { value = 42; }};
+		auto to42 = ScopedDefer{[&] {
+			value = 42;
+		}};
 		value = 2;
 	}
 	EXPECT(value == 42);
@@ -18,7 +20,9 @@ TEST_CASE(scoped_defer_move) {
 	{
 		auto to42 = ScopedDefer{};
 		value = 1;
-		to42 = [&] { value = 42; };
+		to42 = [&] {
+			value = 42;
+		};
 		auto moved = std::move(to42);
 		value = 2;
 	}

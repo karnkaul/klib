@@ -32,7 +32,8 @@ template <typename... Args>
 struct BasicFmt : std::basic_format_string<char, Args...> {
 	template <std::convertible_to<std::string_view> T>
 	consteval BasicFmt(T const& t, std::source_location const& sloc = std::source_location::current())
-		: std::basic_format_string<char, Args...>(t), sloc(sloc) {}
+		: std::basic_format_string<char, Args...>(t),
+		  sloc(sloc) {}
 
 	std::source_location sloc;
 };
@@ -60,7 +61,9 @@ void info(std::string_view tag, Fmt<Args...> const& fmt, Args&&... args) {
 
 template <typename... Args>
 void debug(std::string_view tag, Fmt<Args...> const& fmt, Args&&... args) {
-	if constexpr (!debug_enabled_v) { return; }
+	if constexpr (!debug_enabled_v) {
+		return;
+	}
 	print(Level::Debug, tag, fmt, std::forward<Args>(args)...);
 }
 
@@ -75,7 +78,8 @@ struct Input {
 	std::uint64_t line_number{};
 };
 
-constexpr auto debug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}] [{file_name}:{line_number}]"};
+constexpr auto debug_interpolate_format_v =
+	std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}] [{file_name}:{line_number}]"};
 constexpr auto ndebug_interpolate_format_v = std::string_view{"[{level}] [{tag}/{thread_id}] {message} [{timestamp}]"};
 constexpr auto interpolate_format_v = debug_v ? debug_interpolate_format_v : ndebug_interpolate_format_v;
 
@@ -95,7 +99,9 @@ void print(Input const& input);
 
 template <typename... Args>
 void log::print(Level const level, std::string_view const tag, Fmt<Args...> const& fmt, Args&&... args) {
-	if (level > get_max_level()) { return; }
+	if (level > get_max_level()) {
+		return;
+	}
 	auto const message = std::format(fmt, std::forward<Args>(args)...);
 	auto const input = Input{
 		.level = level,

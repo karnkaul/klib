@@ -10,7 +10,9 @@ template <std::integral Type = int, typename Gen>
 
 template <std::integral Type = std::size_t, typename Gen>
 [[nodiscard]] auto random_index(Gen& generator, Type const size) -> Type {
-	if (size == Type(0)) { return Type{}; }
+	if (size == Type(0)) {
+		return Type{};
+	}
 	return random_int<Type>(generator, 0, size - 1);
 }
 

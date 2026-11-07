@@ -12,7 +12,9 @@ TEST_CASE(file_io_spirv) {
 
 	auto const spir_v = [] {
 		auto ret = SpirV{};
-		for (auto i = 0; i < 10; ++i) { ret.code.push_back(std::uint32_t(i + 0xffff)); }
+		for (auto i = 0; i < 10; ++i) {
+			ret.code.push_back(std::uint32_t(i + 0xffff));
+		}
 		return ret;
 	}();
 

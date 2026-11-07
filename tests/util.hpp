@@ -12,7 +12,9 @@ class TestDir {
 	TestDir& operator=(TestDir&&) = delete;
 
 	explicit TestDir(fs::path path = "test_dir") : m_path(std::move(path)) {
-		if (!fs::exists(m_path)) { fs::create_directories(m_path); }
+		if (!fs::exists(m_path)) {
+			fs::create_directories(m_path);
+		}
 	}
 
 	~TestDir() { fs::remove_all(m_path); }

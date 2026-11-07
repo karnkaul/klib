@@ -16,7 +16,9 @@ inline constexpr std::string_view redirect_null_v =
 
 auto execute(CString expression) -> ExitCode;
 auto execute(std::string_view expression, std::string_view redirect) -> ExitCode;
-inline auto execute_silent(std::string_view const expression) -> ExitCode { return execute(expression, redirect_null_v); }
+inline auto execute_silent(std::string_view const expression) -> ExitCode {
+	return execute(expression, redirect_null_v);
+}
 
 auto open_directory(CString path) -> ExitCode;
 } // namespace klib::shell

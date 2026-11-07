@@ -38,7 +38,9 @@ TEST_CASE(task_queue_drain_and_wait) {
 	queue.pause();
 	static constexpr auto run_count_v = 3;
 	auto tasks = std::array<WaitTask, run_count_v>{};
-	for (auto& task : tasks) { queue.enqueue(task); }
+	for (auto& task : tasks) {
+		queue.enqueue(task);
+	}
 	WaitTask::s_executed = 0;
 	EXPECT(queue.enqueued_count() == std::size_t(run_count_v));
 	queue.drain_and_wait();
@@ -55,14 +57,18 @@ TEST_CASE(task_queue_drain_restart) {
 	{
 		auto tasks = std::array<WaitTask, run_count_v>{};
 		queue.pause();
-		for (auto& task : tasks) { queue.enqueue(task); }
+		for (auto& task : tasks) {
+			queue.enqueue(task);
+		}
 		queue.drain_and_wait();
 	}
 
 	auto tasks = std::array<WaitTask, run_count_v>{};
 	auto to_enqueue = std::array<Task*, run_count_v>{};
 	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-	for (std::size_t i = 0; i < run_count_v; ++i) { to_enqueue[i] = &tasks[i]; }
+	for (std::size_t i = 0; i < run_count_v; ++i) {
+		to_enqueue[i] = &tasks[i];
+	}
 	WaitTask::s_executed = 0;
 	queue.enqueue(to_enqueue);
 	queue.drain_and_wait();
