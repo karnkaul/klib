@@ -5,6 +5,7 @@
 #include "klib/core/version.hpp"
 #include "klib/core/vigenere_cipher.hpp"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -14,6 +15,10 @@
 #ifdef __linux__
 #include <linux/limits.h>
 #include <unistd.h>
+#endif
+
+#ifdef _WIN32
+#include <Windows.h>
 #endif
 
 #pragma region version

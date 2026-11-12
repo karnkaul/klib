@@ -10,6 +10,10 @@
 #include <print>
 #include <thread>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 namespace klib {
 namespace log {
 namespace {

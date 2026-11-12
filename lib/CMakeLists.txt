@@ -7,6 +7,14 @@ target_compile_definitions(${package_name} PUBLIC
   $<$<CONFIG:Debug>:KLIB_DEBUG>
 )
 
+if (WIN32)
+  target_compile_definitions(${package_name} PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+    UNICODE
+  )
+endif()
+
 set(stacktrace_lib "")
 
 if(CMAKE_HOST_UNIX OR MINGW)

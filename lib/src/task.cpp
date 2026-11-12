@@ -1,6 +1,7 @@
 #include "klib/core/assert.hpp"
 #include "klib/task/queue.hpp"
 #include <algorithm>
+#include <array>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
