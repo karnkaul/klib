@@ -1,22 +1,15 @@
 #pragma once
+#include "klib/core/base_types.hpp"
 #include "klib/task/id.hpp"
 #include "klib/task/status.hpp"
 #include "klib/task/task_fwd.hpp"
 #include <atomic>
 
 namespace klib::task {
-class Task {
+class Task : public Polymorphic, public Pinned {
   public:
 	using Status = task::Status;
 	using Id = task::Id;
-
-	virtual ~Task() = default;
-
-	Task() = default;
-	Task(Task const&) = delete;
-	Task(Task&&) = delete;
-	auto operator=(Task const&) -> Task& = delete;
-	auto operator=(Task&&) -> Task& = delete;
 
 	[[nodiscard]] auto get_id() const -> Id { return m_id; }
 	[[nodiscard]] auto get_status() const -> Status { return m_status; }

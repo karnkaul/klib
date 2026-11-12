@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/debug/assert.hpp"
+#include "klib/core/assert.hpp"
 #include <concepts>
 
 namespace klib {

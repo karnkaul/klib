@@ -1,4 +1,4 @@
-#include "klib/enum/bitops.hpp"
+#include "klib/core/enum/bitops.hpp"
 #include <cstdint>
 
 namespace {

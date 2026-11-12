@@ -1,4 +1,4 @@
-#include "klib/debug/assert.hpp"
+#include "klib/core/assert.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -38,8 +38,8 @@ namespace chr = std::chrono;
 
 #pragma region version
 
-#include "klib/string/from_chars.hpp"
-#include "klib/version.hpp"
+#include "klib/core/string/from_chars.hpp"
+#include "klib/core/version.hpp"
 
 auto std::formatter<klib::Version>::format(klib::Version const& version, format_context& fc)
 	-> format_context::iterator {
@@ -334,11 +334,11 @@ auto task::get_max_threads() -> ThreadCount { return ThreadCount(std::thread::ha
 
 #pragma region log
 
-#include "klib/lerp_expr/scanner.hpp"
+#include "klib/core/lerp_expr/scanner.hpp"
+#include "klib/core/string/c_string.hpp"
+#include "klib/core/visitor.hpp"
 #include "klib/log/file.hpp"
 #include "klib/log/log.hpp"
-#include "klib/string/c_string.hpp"
-#include "klib/visitor.hpp"
 
 namespace klib {
 namespace log {
@@ -634,7 +634,7 @@ void log::print(Input const& input) {
 
 #pragma region assert
 
-#include "klib/debug/assert.hpp"
+#include "klib/core/assert.hpp"
 
 namespace klib {
 namespace assertion {
@@ -707,7 +707,7 @@ void assertion::assert_always(bool const predicate, std::stacktrace const& trace
 
 #pragma region text_table
 
-#include "klib/cli/text_table.hpp"
+#include "klib/core/string/text_table.hpp"
 
 namespace klib {
 void TextTable::push_row(std::vector<std::string> row) {
@@ -835,7 +835,7 @@ auto TextTable::Builder::build() const -> TextTable {
 
 #pragma region vigenere
 
-#include "klib/vigenere_cipher.hpp"
+#include "klib/core/vigenere_cipher.hpp"
 #include <functional>
 
 namespace klib {
@@ -924,7 +924,7 @@ auto klib::vigenere_decrypt(std::string_view const key, std::string_view const i
 
 #pragma region escape_code
 
-#include "klib/string/escape_code.hpp"
+#include "klib/core/string/escape_code.hpp"
 
 namespace klib {
 namespace escape {
@@ -973,7 +973,7 @@ auto FromChars::advance_if_all(std::string_view const str) -> bool {
 
 #pragma region env
 
-#include "klib/env.hpp"
+#include "klib/core/env.hpp"
 
 #ifdef __linux__
 #include <linux/limits.h>
@@ -1025,7 +1025,7 @@ auto env::get_var(CString const key) -> CString {
 
 #pragma region demangle
 
-#include "klib/demangle.hpp"
+#include "klib/core/string/demangle.hpp"
 
 #if __has_include(<cxxabi.h>)
 #define KLIB_USE_CXA_DEMANGLE
@@ -1069,7 +1069,7 @@ auto klib::demangled_name(std::type_index const index) -> std::string { return d
 
 #pragma region file_io
 
-#include "klib/file_io.hpp"
+#include "klib/core/file_io.hpp"
 #include <fstream>
 
 namespace klib {
@@ -1135,7 +1135,7 @@ auto klib::resolve_symlink(std::string_view const path, int const max_iters) -> 
 #pragma region cli_prompt
 
 #include "klib/cli/prompt.hpp"
-#include "klib/debug/assert.hpp"
+#include "klib/core/assert.hpp"
 #include <iostream>
 #include <print>
 #include <string_view>
@@ -1288,7 +1288,7 @@ auto shell::open_directory(CString const path) -> ExitCode {
 
 #pragma region glob
 
-#include "klib/string/glob.hpp"
+#include "klib/core/string/glob.hpp"
 
 namespace klib {
 namespace glob {

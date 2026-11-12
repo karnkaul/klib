@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/string/c_string.hpp"
+#include "klib/core/string/c_string.hpp"
 #include <cstdlib>
 
 namespace klib::shell {

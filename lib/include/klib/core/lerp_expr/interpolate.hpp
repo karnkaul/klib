@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/lerp_expr/scanner.hpp"
+#include "klib/core/lerp_expr/scanner.hpp"
 
 namespace klib::lerp_expr {
 template <typename FuncT>

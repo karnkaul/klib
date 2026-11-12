@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/string/format_parser.hpp"
+#include "klib/core/string/format_parser.hpp"
 #include <compare>
 #include <cstdint>
 #include <format>

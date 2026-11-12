@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/constants.hpp"
+#include "klib/core/constants.hpp"
 #include <concepts>
 #include <cstdint>
 #include <exception>

@@ -1,6 +1,6 @@
 #pragma once
-#include "klib/concepts.hpp"
-#include "klib/string/c_string.hpp"
+#include "klib/core/concepts.hpp"
+#include "klib/core/string/c_string.hpp"
 #include <cstddef>
 #include <cstring>
 #include <span>
