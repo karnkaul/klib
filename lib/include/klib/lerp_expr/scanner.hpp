@@ -1,5 +1,4 @@
 #pragma once
-#include "klib/debug/assert.hpp"
 #include "klib/lerp_expr/token.hpp"
 #include <cstddef>
 
@@ -22,6 +21,7 @@ class Scanner {
 			return false;
 		}
 
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 		auto const i = std::min(m_text.find(enclose_v[0], m_index), m_text.size());
 		if (i == m_index) {
 			out = to_identifier();
@@ -34,9 +34,9 @@ class Scanner {
 
   private:
 	[[nodiscard]] constexpr auto to_identifier() -> Token {
-		KLIB_ASSERT(m_index < m_text.size() && m_text[m_index] == enclose_v[0]);
 		++m_index;
 
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 		auto const i = m_text.find(enclose_v[1], m_index);
 		if (i == std::string_view::npos) {
 			return to_token(Type::Identifier, m_text.size());

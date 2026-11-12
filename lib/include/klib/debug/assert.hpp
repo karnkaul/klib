@@ -1,8 +1,10 @@
 #pragma once
-#include "klib/debug/trap.hpp"
+#include "klib/constants.hpp"
+#include <concepts>
 #include <cstdint>
 #include <exception>
 #include <stacktrace>
+#include <string>
 
 namespace klib::assertion {
 enum class FailAction : std::uint8_t { Throw, Terminate, None };
@@ -15,22 +17,24 @@ struct Failure : std::exception {
 void set_fail_action(FailAction value);
 
 void append_trace(std::string& out, std::stacktrace const& trace);
-void print(std::string_view expr, std::stacktrace const& trace = std::stacktrace::current());
+void print_trace(std::stacktrace const& trace);
 
 void trigger_failure();
+
+void assert_always(bool predicate, std::stacktrace const& trace);
+inline void assert_debug(bool const predicate, std::stacktrace const& trace) {
+	if constexpr (debug_v) {
+		assert_always(predicate, trace);
+	}
+}
 } // namespace klib::assertion
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define KLIB_ASSERT(expr)                                                                                              \
-	if (!bool(expr)) {                                                                                                 \
-		::klib::assertion::print(#expr);                                                                               \
-		KLIB_DEBUG_TRAP();                                                                                             \
-		::klib::assertion::trigger_failure();                                                                          \
-	}
-#ifdef KLIB_DEBUG
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define KLIB_ASSERT_DEBUG(expr) KLIB_ASSERT(expr)
-#else
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define KLIB_ASSERT_DEBUG(expr)
-#endif
+template <std::convertible_to<bool> ExprT>
+void klib_assert(ExprT const& expression, std::stacktrace const& trace = std::stacktrace::current()) {
+	klib::assertion::assert_always(static_cast<bool>(expression), trace);
+}
+
+template <std::convertible_to<bool> ExprT>
+void klib_assert_debug(ExprT const& expression, std::stacktrace const& trace = std::stacktrace::current()) {
+	klib::assertion::assert_debug(static_cast<bool>(expression), trace);
+}

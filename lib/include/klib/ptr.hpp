@@ -24,12 +24,12 @@ class Ptr {
 	}
 
 	[[nodiscard]] constexpr auto operator*() const -> Type& {
-		KLIB_ASSERT(m_ptr);
+		klib_assert(m_ptr);
 		return *m_ptr;
 	}
 
 	[[nodiscard]] constexpr auto operator->() const -> Type* {
-		KLIB_ASSERT(m_ptr);
+		klib_assert(m_ptr);
 		return m_ptr;
 	}
 

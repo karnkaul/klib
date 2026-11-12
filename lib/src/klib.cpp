@@ -126,7 +126,7 @@ struct Queue::Impl {
 			return false;
 		}
 		for (auto* task : tasks) {
-			KLIB_ASSERT(!task->is_busy());
+			klib_assert(!task->is_busy());
 			if (task->m_id == Task::Id::None) {
 				task->m_id = Task::Id{++m_prev_id};
 			}
@@ -178,7 +178,7 @@ struct Queue::Impl {
 		m_empty_cv.wait(lock, [this] {
 			return m_queue.empty();
 		});
-		KLIB_ASSERT(m_queue.empty());
+		klib_assert(m_queue.empty());
 		lock.unlock();
 		recreate_workers();
 		m_draining = false;
@@ -632,64 +632,6 @@ void log::print(Input const& input) {
 
 #pragma endregion
 
-#pragma region debug_trap
-
-#include "klib/debug/trap.hpp"
-
-namespace {
-// https://gcc.gnu.org/pipermail/libstdc++/2025-May/061246.html
-[[maybe_unused]] auto glibcxx_is_debugger_present() -> bool {
-	using namespace std;
-	string_view const prefix = "TracerPid:\t"; // populated since Linux 2.6.0
-	ifstream in("/proc/self/status");
-	string line;
-	while (std::getline(in, line)) {
-		if (!line.starts_with(prefix)) {
-			continue;
-		}
-
-		string_view tracer = line;
-		tracer.remove_prefix(prefix.size());
-		if (tracer.size() == 1 && tracer.front() == '0') [[likely]] {
-			return false; // Not being traced.
-		}
-
-		in.close();
-		string_view cmd;
-		string proc_dir = "/proc/" + string(tracer) + '/';
-		in.open(proc_dir + "comm"); // since Linux 2.6.33
-		if (std::getline(in, line)) [[likely]] {
-			cmd = line;
-		} else {
-			in.close();
-			in.open(proc_dir + "cmdline");
-			if (std::getline(in, line)) {
-				// NOLINTNEXTLINE(readability-redundant-string-cstr)
-				cmd = line.c_str(); // Only up to first '\0'
-			} else {
-				return false;
-			}
-		}
-
-		static constexpr auto known_debuggers = std::array{"gdb", "gdbserver", "lldb-server"};
-		return std::ranges::any_of(known_debuggers, [cmd](char const* dbg) {
-			return cmd.ends_with(dbg);
-		});
-	}
-	return false;
-}
-} // namespace
-
-auto klib::is_debugger_attached() -> bool {
-#ifdef _WIN32
-	return IsDebuggerPresent() != 0;
-#else
-	return glibcxx_is_debugger_present();
-#endif
-}
-
-#pragma endregion
-
 #pragma region assert
 
 #include "klib/debug/assert.hpp"
@@ -721,7 +663,6 @@ auto assertion::get_fail_action() -> FailAction { return g_fail_action; }
 void assertion::set_fail_action(FailAction const value) { g_fail_action = value; }
 
 void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
-
 	for (auto const& entry : trace) {
 		auto const description = entry.description();
 		if (is_internal(description)) {
@@ -738,8 +679,8 @@ void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
 	}
 }
 
-void assertion::print(std::string_view expr, std::stacktrace const& trace) {
-	auto msg = std::format("assertion failed: '{}'\n", expr);
+void assertion::print_trace(std::stacktrace const& trace) {
+	auto msg = std::string{"assertion failed\n"};
 	append_trace(msg, trace);
 	std::println(stderr, "{}", msg);
 }
@@ -750,6 +691,15 @@ void assertion::trigger_failure() {
 	case FailAction::Terminate: std::terminate(); return;
 	default: return;
 	}
+}
+
+void assertion::assert_always(bool const predicate, std::stacktrace const& trace) {
+	if (predicate) {
+		return;
+	}
+
+	print_trace(trace);
+	trigger_failure();
 }
 } // namespace klib
 
@@ -822,7 +772,7 @@ auto TextTable::make_column_fmt(Column const& column) const -> std::string {
 }
 
 void TextTable::update_column_widths() {
-	KLIB_ASSERT(!m_rows.empty());
+	klib_assert(!m_rows.empty());
 	auto const& row = m_rows.back();
 	if (row.empty()) {
 		return;
@@ -892,7 +842,7 @@ namespace klib {
 namespace {
 class VigenereCipher {
   public:
-	explicit constexpr VigenereCipher(std::string_view const key) : m_key(key) { KLIB_ASSERT(!m_key.empty()); }
+	explicit constexpr VigenereCipher(std::string_view const key) : m_key(key) { klib_assert(!m_key.empty()); }
 
 	constexpr void encrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &shift); }
 	constexpr void decrypt(std::string_view const src, std::span<char> dst) const { process(src, dst, &unshift); }
@@ -911,7 +861,7 @@ class VigenereCipher {
 			return ch;
 		}
 		auto const ret = int(ch) - min_shift_v + distance;
-		KLIB_ASSERT(ret >= 0);
+		klib_assert(ret >= 0);
 		return char((ret % shift_mod_v) + min_shift_v);
 	}
 
@@ -920,13 +870,13 @@ class VigenereCipher {
 			return ch;
 		}
 		auto const ret = int(ch) + shift_mod_v - min_shift_v - distance;
-		KLIB_ASSERT(ret >= 0);
+		klib_assert(ret >= 0);
 		return char((ret % shift_mod_v) + min_shift_v);
 	}
 
 	template <typename F>
 	constexpr void process(std::string_view const src, std::span<char> dst, F func) const {
-		KLIB_ASSERT(src.size() <= dst.size());
+		klib_assert(src.size() <= dst.size());
 		if (src.empty()) {
 			return;
 		}
@@ -937,7 +887,7 @@ class VigenereCipher {
 				auto const j = i % m_key.size();
 				// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 				auto const distance = static_cast<int>(m_key[j]) - min_shift_v;
-				KLIB_ASSERT(distance >= 0);
+				klib_assert(distance >= 0);
 				// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 				dst[i] = func(src[i], distance);
 			} else {
@@ -1224,7 +1174,7 @@ auto prompt::confirm(std::string_view const message) -> Selection {
 		return selection;
 	}
 
-	KLIB_ASSERT(selection == Selection::Line);
+	klib_assert(selection == Selection::Line);
 	if (input == "y") {
 		return Selection::Confirm;
 	}
@@ -1262,11 +1212,11 @@ auto prompt::options(std::span<Option const> options, bool const empty_is_exit) 
 		return selection;
 	}
 
-	KLIB_ASSERT(selection == Selection::Line);
+	klib_assert(selection == Selection::Line);
 	if (number == 0) {
 		return Selection::Exit;
 	}
-	KLIB_ASSERT(number > 0);
+	klib_assert(number > 0);
 	auto const index = static_cast<std::size_t>(number - 1);
 	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	auto const& option = options[index];
