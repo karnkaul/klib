@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/concepts.hpp"
+#include "klib/core/concepts.hpp"
 #include <string>
 #include <typeindex>
 #include <typeinfo>

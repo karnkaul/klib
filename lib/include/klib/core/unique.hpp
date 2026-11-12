@@ -1,12 +1,21 @@
 #pragma once
-#include "klib/macros.hpp"
-#include "klib/noop.hpp"
 #include <concepts>
 #include <utility>
+
+#if defined(_MSC_VER)
+#define KLIB_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define KLIB_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
 
 namespace klib {
 template <typename Type>
 concept UniquePayloadT = std::is_default_constructible_v<Type> && std::move_constructible<Type>;
+
+template <typename... Args>
+struct Noop {
+	constexpr void operator()(Args&&... /*unused*/) const noexcept {}
+};
 
 template <UniquePayloadT Type>
 	requires std::equality_comparable<Type>

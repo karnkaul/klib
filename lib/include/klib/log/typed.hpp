@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/demangle.hpp"
+#include "klib/core/string/demangle.hpp"
 #include "klib/log/tagged.hpp"
 
 namespace klib::log {

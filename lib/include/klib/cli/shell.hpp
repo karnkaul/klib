@@ -1,5 +1,5 @@
 #pragma once
-#include "klib/string/c_string.hpp"
+#include "klib/core/string/c_string.hpp"
 #include <cstdlib>
 
 namespace klib::shell {
@@ -8,7 +8,7 @@ inline constexpr auto success_v = ExitCode{EXIT_SUCCESS};
 inline constexpr auto failure_v = ExitCode{EXIT_FAILURE};
 
 inline constexpr std::string_view redirect_null_v =
-#if defined(_WIN32)
+#ifdef _WIN32
 	"NUL";
 #else
 	"/dev/null";

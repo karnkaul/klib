@@ -1,5 +1,5 @@
-#include "klib/constants.hpp"
-#include "klib/debug/assert.hpp"
+#include "klib/core/assert.hpp"
+#include "klib/core/constants.hpp"
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {
@@ -7,7 +7,7 @@ TEST_CASE(assert) {
 	[[maybe_unused]] static constexpr int value_v{42};
 	auto thrown = false;
 	try {
-		KLIB_ASSERT_DEBUG(value_v == -5);
+		klib_assert_debug(value_v == -5);
 	} catch (klib::assertion::Failure const& /*e*/) {
 		thrown = true;
 	}
@@ -16,7 +16,7 @@ TEST_CASE(assert) {
 	klib::assertion::set_fail_action(klib::assertion::FailAction::None);
 	thrown = false;
 	try {
-		KLIB_ASSERT(value_v == -5);
+		klib_assert(value_v == -5);
 	} catch (klib::assertion::Failure const& /*e*/) {
 		thrown = true;
 	}

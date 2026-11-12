@@ -1,5 +1,5 @@
-#include "klib/demangle.hpp"
-#include "klib/string/c_string.hpp"
+#include "klib/core/string/c_string.hpp"
+#include "klib/core/string/demangle.hpp"
 #include "klib/unit_test/unit_test.hpp"
 
 namespace test {

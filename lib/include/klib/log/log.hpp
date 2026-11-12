@@ -1,7 +1,7 @@
 #pragma once
-#include "klib/constants.hpp"
-#include "klib/enum/map.hpp"
-#include "klib/string/escape_code.hpp"
+#include "klib/core/constants.hpp"
+#include "klib/core/enum/map.hpp"
+#include "klib/core/string/escape_code.hpp"
 #include <cstdint>
 #include <format>
 #include <optional>

@@ -1,6 +1,6 @@
 #pragma once
-#include "klib/concepts.hpp"
-#include "klib/ptr.hpp"
+#include "klib/core/concepts.hpp"
+#include "klib/core/ptr.hpp"
 #include <algorithm>
 #include <optional>
 #include <span>

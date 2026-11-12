@@ -1,4 +1,4 @@
-#include "klib/lerp_expr/interpolate.hpp"
+#include "klib/core/string/lerp_expr/interpolate.hpp"
 #include "klib/unit_test/unit_test.hpp"
 #include <format>
 #include <string_view>

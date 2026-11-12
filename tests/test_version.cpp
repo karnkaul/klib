@@ -1,5 +1,5 @@
+#include "klib/core/version.hpp"
 #include "klib/unit_test/unit_test.hpp"
-#include "klib/version.hpp"
 
 namespace {
 using namespace klib;
