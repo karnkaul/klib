@@ -5,7 +5,6 @@ target_compile_features(${package_name} PUBLIC cxx_std_23)
 
 target_compile_definitions(${package_name} PUBLIC
   $<$<CONFIG:Debug>:KLIB_DEBUG>
-  $<$<BOOL:${KLIB_USE_STACKTRACE}>:KLIB_USE_STACKTRACE>
 )
 
 set(stacktrace_lib "")
@@ -15,7 +14,7 @@ if(CMAKE_HOST_UNIX OR MINGW)
 endif()
 
 target_link_libraries(${package_name} PRIVATE
-  $<$<BOOL:${KLIB_USE_STACKTRACE}>:${stacktrace_lib}>
+  ${stacktrace_lib}
 )
 
 target_include_directories(${package_name} PRIVATE

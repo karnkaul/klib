@@ -19,7 +19,7 @@ auto const level_char_map = EnumMap<Level, char>{
 	{Level::Debug, 'D'},
 };
 using Colors = EnumMap<Level, std::optional<escape::Rgb>>;
-auto const lever_color_map = Colors{
+auto const level_color_map = Colors{
 	{Level::Error, escape::Rgb{241, 76, 76}},
 	{Level::Warn, escape::Rgb{245, 245, 67}},
 	{Level::Info, escape::Rgb{229, 229, 229}},

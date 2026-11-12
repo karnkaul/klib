@@ -14,14 +14,8 @@ struct Failure : std::exception {
 [[nodiscard]] auto get_fail_action() -> FailAction;
 void set_fail_action(FailAction value);
 
-#ifdef KLIB_USE_STACKTRACE
-#define KLIB_GET_TRACE std::stacktrace::current
-#else
-#define KLIB_GET_TRACE std::stacktrace
-#endif
-
 void append_trace(std::string& out, std::stacktrace const& trace);
-void print(std::string_view expr, std::stacktrace const& trace = KLIB_GET_TRACE());
+void print(std::string_view expr, std::stacktrace const& trace = std::stacktrace::current());
 
 void trigger_failure();
 } // namespace klib::assertion

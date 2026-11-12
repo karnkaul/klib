@@ -504,6 +504,11 @@ class Formatter {
 };
 
 struct Storage {
+	[[nodiscard]] static auto self() -> Storage& {
+		static auto ret = Storage{};
+		return ret;
+	}
+
 	explicit Storage() {
 		auto const _ = get_thread_id();
 		m_formatter.set_interpolate_format(std::string{interpolate_format_v});
@@ -554,33 +559,31 @@ struct Storage {
   private:
 	mutable std::mutex m_mutex{};
 	FileImpl m_file{};
-	std::optional<Colors> m_colors{lever_color_map};
+	std::optional<Colors> m_colors{level_color_map};
 	Formatter m_formatter{};
 };
-
-auto g_storage = Storage{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace
 
 File::File(std::string path) : m_path(std::move(path)) {
 	if (m_path.empty()) {
 		return;
 	}
-	g_storage.attach_file(m_path);
+	Storage::self().attach_file(m_path);
 }
 
-File::~File() { g_storage.detach_file(); }
+File::~File() { Storage::self().detach_file(); }
 
-auto File::is_attached() const -> bool { return m_path == g_storage.get_file_path(); }
+auto File::is_attached() const -> bool { return m_path == Storage::self().get_file_path(); }
 } // namespace log
 
-void log::set_max_level(Level level) { g_storage.max_level = level; }
-auto log::get_max_level() -> Level { return g_storage.max_level; }
+void log::set_max_level(Level level) { Storage::self().max_level = level; }
+auto log::get_max_level() -> Level { return Storage::self().max_level; }
 
-void log::set_colors(std::optional<Colors> const& colors) { g_storage.set_colors(colors); }
-auto log::get_colors() -> std::optional<Colors> { return g_storage.get_colors(); }
+void log::set_colors(std::optional<Colors> const& colors) { Storage::self().set_colors(colors); }
+auto log::get_colors() -> std::optional<Colors> { return Storage::self().get_colors(); }
 
 void log::set_interpolate_format(std::string interpolate_format) {
-	g_storage.set_interpolate_format(std::move(interpolate_format));
+	Storage::self().set_interpolate_format(std::move(interpolate_format));
 }
 
 auto log::get_thread_id() -> ThreadId {
@@ -590,13 +593,13 @@ auto log::get_thread_id() -> ThreadId {
 }
 
 auto log::format(Input const& input) -> std::string {
-	auto ret = g_storage.format(input);
+	auto ret = Storage::self().format(input);
 	ret.append("\n");
 	return ret;
 }
 
 void log::print(Input const& input) {
-	if (input.level > g_storage.max_level) {
+	if (input.level > Storage::self().max_level) {
 		return;
 	}
 
@@ -612,7 +615,7 @@ void log::print(Input const& input) {
 		std::print(out, "{}{}{}", fg, text, escape::clear);
 	};
 
-	if (auto const colors = g_storage.get_colors()) {
+	if (auto const colors = Storage::self().get_colors()) {
 		do_print(*colors->to_value(input.level));
 	} else {
 		do_print({});
@@ -623,7 +626,7 @@ void log::print(Input const& input) {
 	OutputDebugStringA(text.c_str());
 #endif
 
-	g_storage.print_to_file(text.c_str());
+	Storage::self().print_to_file(text.c_str());
 }
 } // namespace klib
 
@@ -718,21 +721,20 @@ auto assertion::get_fail_action() -> FailAction { return g_fail_action; }
 void assertion::set_fail_action(FailAction const value) { g_fail_action = value; }
 
 void assertion::append_trace(std::string& out, std::stacktrace const& trace) {
-	if constexpr (use_stacktrace_v) {
-		for (auto const& entry : trace) {
-			auto const description = entry.description();
-			if (is_internal(description)) {
-				return;
-			}
-			std::format_to(std::back_inserter(out), "  {}", description);
-			if constexpr (debug_v) {
-				std::string const file = entry.source_file();
-				if (!file.empty() && entry.source_line() > 0) {
-					std::format_to(std::back_inserter(out), " [{}:{}]", file, entry.source_line());
-				}
-			}
-			out += '\n';
+
+	for (auto const& entry : trace) {
+		auto const description = entry.description();
+		if (is_internal(description)) {
+			return;
 		}
+		std::format_to(std::back_inserter(out), "  {}", description);
+		if constexpr (debug_v) {
+			std::string const file = entry.source_file();
+			if (!file.empty() && entry.source_line() > 0) {
+				std::format_to(std::back_inserter(out), " [{}:{}]", file, entry.source_line());
+			}
+		}
+		out += '\n';
 	}
 }
 

@@ -13,14 +13,7 @@ constexpr std::uint64_t giga_v = 1000 * mega_v;
 constexpr std::uint64_t tera_v = 1000 * giga_v;
 
 constexpr auto debug_v =
-#if defined(KLIB_DEBUG)
-	true;
-#else
-	false;
-#endif
-
-constexpr auto use_stacktrace_v =
-#if defined(KLIB_USE_STACKTRACE)
+#ifdef KLIB_DEBUG
 	true;
 #else
 	false;
