@@ -23,15 +23,9 @@ class Ptr {
 		return get();
 	}
 
-	[[nodiscard]] constexpr auto operator*() const -> Type& {
-		klib_assert(m_ptr);
-		return *m_ptr;
-	}
+	[[nodiscard]] constexpr auto operator*() const -> Type& { return dereference(); }
 
-	[[nodiscard]] constexpr auto operator->() const -> Type* {
-		klib_assert(m_ptr);
-		return m_ptr;
-	}
+	[[nodiscard]] constexpr auto operator->() const -> Type* { return &dereference(); }
 
 	constexpr auto operator==(std::nullptr_t) const -> bool { return m_ptr == nullptr; }
 
@@ -48,6 +42,13 @@ class Ptr {
 	}
 
   private:
+	[[nodiscard]] constexpr auto dereference() const -> Type& {
+		if (!std::is_constant_evaluated()) {
+			klib_assert(m_ptr);
+		}
+		return *m_ptr;
+	}
+
 	Type* m_ptr{};
 };
 } // namespace klib

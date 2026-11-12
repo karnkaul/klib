@@ -1,4 +1,5 @@
 #pragma once
+#include "klib/debug/assert.hpp"
 #include "klib/lerp_expr/token.hpp"
 #include <cstddef>
 
@@ -34,6 +35,11 @@ class Scanner {
 
   private:
 	[[nodiscard]] constexpr auto to_identifier() -> Token {
+		if (!std::is_constant_evaluated()) {
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+			klib_assert(m_index < m_text.size() && m_text[m_index] == enclose_v[0]);
+		}
+
 		++m_index;
 
 		// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)

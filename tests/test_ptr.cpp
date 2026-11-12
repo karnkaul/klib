@@ -1,8 +1,8 @@
 #include "klib/ptr.hpp"
+#include "klib/unit_test/unit_test.hpp"
 
 namespace {
-template <typename T>
-using Ptr = klib::Ptr<T>;
+using klib::Ptr;
 
 struct A {};
 struct B : A {};
@@ -20,4 +20,21 @@ static_assert(p_a != klib::Ptr{&b});
 
 constexpr Ptr<A const> null = nullptr;
 static_assert(null == nullptr);
+
+TEST_CASE(ptr_assert) {
+	struct S {
+		int value{};
+	};
+
+	auto ptr = klib::Ptr<S>{};
+	auto thrown = false;
+	klib::assertion::set_fail_action(klib::assertion::FailAction::Throw);
+	try {
+		[[maybe_unused]] auto const s = *ptr;
+		[[maybe_unused]] auto const i = ptr->value;
+	} catch (klib::assertion::Failure const&) {
+		thrown = true;
+	}
+	EXPECT(thrown);
+}
 } // namespace
