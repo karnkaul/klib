@@ -1,7 +1,6 @@
-#include "klib/core/string/from_chars.hpp"
+import klib.core.string;
+
 #include "klib/unit_test/unit_test.hpp"
-#include <cmath>
-#include <cstdint>
 
 namespace {
 using namespace klib;

@@ -1,20 +1,19 @@
-#include "klib/build_version.hpp"
-#include "klib/unit_test/unit_test.hpp"
-#include <print>
+import klib.unit_test;
+import klib.build_version;
 
 auto main(int argc, char** argv) -> int {
 	try {
-		auto args = std::span{argv, std::size_t(argc)};
+		auto args = std::span{argv, static_cast<std::size_t>(argc)};
 		if (!args.empty()) {
 			args = args.subspan(1);
 		}
 		std::println("- klib/unit_test {} -", klib::build_version_v);
 		return klib::unit_test::run_tests(args);
 	} catch (std::exception const& e) {
-		std::println(stderr, "PANIC: {}", e.what());
-		return EXIT_FAILURE;
+		std::println(std::cerr, "PANIC: {}", e.what());
+		return 1;
 	} catch (...) {
-		std::println(stderr, "PANIC");
-		return EXIT_FAILURE;
+		std::println(std::cerr, "PANIC");
+		return 1;
 	}
 }

@@ -1,4 +1,5 @@
-#include "klib/core/string/glob.hpp"
+import klib.core.string;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {

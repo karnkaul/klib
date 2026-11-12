@@ -1,9 +1,6 @@
-#include "klib/task/queue.hpp"
+import klib.task;
+
 #include "klib/unit_test/unit_test.hpp"
-#include <array>
-#include <chrono>
-#include <random>
-#include <thread>
 
 namespace {
 using namespace klib::task;
@@ -65,9 +62,8 @@ TEST_CASE(task_queue_drain_restart) {
 
 	auto tasks = std::array<WaitTask, run_count_v>{};
 	auto to_enqueue = std::array<Task*, run_count_v>{};
-	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-	for (std::size_t i = 0; i < run_count_v; ++i) {
-		to_enqueue[i] = &tasks[i];
+	for (auto [in, out] : std::views::zip(tasks, to_enqueue)) {
+		out = &in;
 	}
 	WaitTask::s_executed = 0;
 	queue.enqueue(to_enqueue);

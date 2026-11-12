@@ -1,5 +1,6 @@
 #pragma once
-#include <filesystem>
+
+import std;
 
 namespace klib {
 namespace fs = std::filesystem;

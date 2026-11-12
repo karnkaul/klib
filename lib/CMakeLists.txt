@@ -29,28 +29,27 @@ target_include_directories(${package_name} PRIVATE
   src
 )
 
-set(version_header include/${package_name}/build_version.hpp)
-configure_file(src/build_version.hpp.in ${version_header} @ONLY)
-
-file(GLOB_RECURSE headers LIST_DIRECTORIES false "include/*.hpp")
+set(version_module src/build_version.cppm)
+configure_file(src/build_version.cppm.in ${version_module} @ONLY)
 
 target_sources(${package_name} PUBLIC FILE_SET HEADERS
-  BASE_DIRS
-  include
-  "${CMAKE_CURRENT_BINARY_DIR}/include"
-
-  FILES
-  ${headers}
-  "${CMAKE_CURRENT_BINARY_DIR}/${version_header}"
+  BASE_DIRS include
+  FILES include/${package_name}/unit_test/unit_test.hpp
 )
 
-target_sources(${package_name} PRIVATE
-  src/core_string.cpp
-  src/core.cpp
-  src/cli.cpp
-  src/log.cpp
-  src/task.cpp
-  src/unit_test.cpp
+target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
+  FILES
+  src/core_string.cppm
+  src/core.cppm
+  src/log.cppm
+  src/cli.cppm
+  src/task.cppm
+  src/unit_test.cppm
+)
+
+target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
+  BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}"
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/${version_module}"
 )
 
 add_library(${package_name}-test-main)

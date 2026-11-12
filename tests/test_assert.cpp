@@ -1,5 +1,5 @@
-#include "klib/core/assert.hpp"
-#include "klib/core/constants.hpp"
+import klib.core;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {

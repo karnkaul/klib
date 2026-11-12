@@ -1,4 +1,4 @@
-#include "klib/core/unique.hpp"
+import klib.core;
 
 namespace {
 using namespace klib;
