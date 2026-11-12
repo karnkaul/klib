@@ -1,13 +1,14 @@
-#include "klib/core/string/c_string.hpp"
-#include "klib/core/string/demangle.hpp"
+import klib.core.string;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace test {
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions,misc-use-internal-linkage)
 struct Base {
 	virtual ~Base() = default;
 };
 
+// NOLINTNEXTLINE(misc-use-internal-linkage)
 struct Derived : Base {};
 } // namespace test
 

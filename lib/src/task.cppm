@@ -1,46 +1,63 @@
-#include "klib/core/assert.hpp"
-#include "klib/task/queue.hpp"
-#include <algorithm>
-#include <array>
-#include <condition_variable>
-#include <deque>
-#include <mutex>
-#include <thread>
-#include <vector>
+export module klib.task;
 
-namespace klib {
-namespace task {
-void Task::do_execute() {
-	m_status = Status::Executing;
-	try {
-		execute();
-	} catch (...) {}
-	finalize();
-}
+export import klib.core;
 
-void Task::do_drop() {
-	m_status = Task::Status::Dropped;
-	finalize();
-}
+export namespace klib::task {
+enum struct Id : std::uint64_t { None = 0 }; // NOLINT(performance-enum-size)
+enum class Status : std::int8_t { None, Queued, Dropped, Executing, Completed };
 
-void Task::finalize() {
-	switch (m_status) {
-	case Status::Executing: m_status = Status::Completed; break;
-	default: break;
+enum struct ThreadCount : std::uint8_t { Minimum = 1 };
+enum struct ElementCount : std::size_t { Unbounded = 0 }; // NOLINT(performance-enum-size)
+
+[[nodiscard]] auto get_max_threads() -> ThreadCount;
+
+struct QueueCreateInfo {
+	ThreadCount thread_count{get_max_threads()};
+	ElementCount max_elements{ElementCount::Unbounded};
+};
+
+class Task : public Polymorphic, public Pinned {
+  public:
+	using Status = task::Status;
+	using Id = task::Id;
+
+	[[nodiscard]] auto get_id() const -> Id { return m_id; }
+	[[nodiscard]] auto get_status() const -> Status { return m_status; }
+	[[nodiscard]] auto is_busy() const -> bool { return m_busy; }
+
+	void wait() { m_busy.wait(true); }
+
+  protected:
+	virtual void execute() = 0;
+
+  private:
+	void do_execute();
+	void do_drop();
+
+	void finalize();
+
+	std::atomic<Status> m_status{};
+	std::atomic<bool> m_busy{};
+	Id m_id{Id::None};
+
+	friend class Queue;
+};
+
+class Queue {
+  public:
+	using CreateInfo = QueueCreateInfo;
+
+	Queue(Queue const&) = delete;
+	Queue(Queue&&) = delete;
+	auto operator=(Queue const&) = delete;
+	auto operator=(Queue&&) = delete;
+
+	explicit Queue(CreateInfo const& create_info) : m_create_info(create_info) {
+		m_create_info.thread_count = std::clamp(create_info.thread_count, ThreadCount::Minimum, get_max_threads());
+		create_workers();
 	}
-	m_busy = false;
-	m_busy.notify_all();
-}
 
-struct Queue::Impl {
-	Impl(Impl const&) = delete;
-	Impl(Impl&&) = delete;
-	auto operator=(Impl const&) = delete;
-	auto operator=(Impl&&) = delete;
-
-	explicit Impl(CreateInfo const& create_info) : m_create_info(create_info) { create_workers(); }
-
-	~Impl() {
+	~Queue() {
 		drop_enqueued();
 		destroy_workers();
 	}
@@ -52,6 +69,8 @@ struct Queue::Impl {
 		return m_queue.size();
 	}
 
+	[[nodiscard]] auto is_empty() const -> bool { return enqueued_count() == 0; }
+
 	[[nodiscard]] auto can_enqueue(std::size_t const count) const -> bool {
 		if (m_draining) {
 			return false;
@@ -60,6 +79,11 @@ struct Queue::Impl {
 			return true;
 		}
 		return enqueued_count() + count < std::size_t(m_create_info.max_elements);
+	}
+
+	auto enqueue(Task& task) -> bool {
+		auto const tasks = std::array{&task};
+		return enqueue(tasks);
 	}
 
 	auto enqueue(std::span<Task* const> tasks) -> bool {
@@ -194,80 +218,30 @@ struct Queue::Impl {
 
 	std::underlying_type_t<Task::Id> m_prev_id{};
 };
+} // namespace klib::task
 
-void Queue::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
-
-Queue::Queue(CreateInfo create_info) {
-	create_info.thread_count = std::clamp(create_info.thread_count, ThreadCount::Minimum, get_max_threads());
-	m_impl.reset(new Impl(create_info)); // NOLINT(cppcoreguidelines-owning-memory)
+namespace klib {
+namespace task {
+void Task::do_execute() {
+	m_status = Status::Executing;
+	try {
+		execute();
+	} catch (...) {}
+	finalize();
 }
 
-auto Queue::thread_count() const -> ThreadCount {
-	if (!m_impl) {
-		return ThreadCount{0};
+void Task::do_drop() {
+	m_status = Task::Status::Dropped;
+	finalize();
+}
+
+void Task::finalize() {
+	switch (m_status) {
+	case Status::Executing: m_status = Status::Completed; break;
+	default: break;
 	}
-	return m_impl->thread_count();
-}
-
-auto Queue::enqueued_count() const -> std::size_t {
-	if (!m_impl) {
-		return 0;
-	}
-	return m_impl->enqueued_count();
-}
-
-auto Queue::can_enqueue(std::size_t const count) const -> bool {
-	if (!m_impl) {
-		return false;
-	}
-	return m_impl->can_enqueue(count);
-}
-
-auto Queue::enqueue(Task& task) -> bool {
-	auto const tasks = std::array{&task};
-	return enqueue(tasks);
-}
-
-auto Queue::enqueue(std::span<Task* const> tasks) -> bool {
-	if (!m_impl) {
-		return false;
-	}
-	return m_impl->enqueue(tasks);
-}
-
-auto Queue::fork_join(std::span<Task* const> tasks) -> Task::Status {
-	if (!m_impl) {
-		return Task::Status::None;
-	}
-	return m_impl->fork_join(tasks);
-}
-
-void Queue::pause() {
-	if (!m_impl) {
-		return;
-	}
-	m_impl->pause();
-}
-
-void Queue::resume() {
-	if (!m_impl) {
-		return;
-	}
-	m_impl->resume();
-}
-
-void Queue::drain_and_wait() {
-	if (!m_impl) {
-		return;
-	}
-	m_impl->drain_and_wait();
-}
-
-void Queue::drop_enqueued() {
-	if (!m_impl) {
-		return;
-	}
-	m_impl->drop_enqueued();
+	m_busy = false;
+	m_busy.notify_all();
 }
 } // namespace task
 

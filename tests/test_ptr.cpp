@@ -1,4 +1,5 @@
-#include "klib/core/ptr.hpp"
+import klib.core;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {

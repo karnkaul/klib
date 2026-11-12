@@ -1,4 +1,5 @@
-#include "klib/core/file_io.hpp"
+import klib.core;
+
 #include "klib/unit_test/unit_test.hpp"
 #include "util.hpp"
 

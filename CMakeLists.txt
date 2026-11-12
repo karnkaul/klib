@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 4.4)
+
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
+set(CMAKE_CXX_MODULE_STD ON)
 
 set(package_name klib)
 project(${package_name} VERSION "0.7.1")
-
-option(KLIB_INSTALL "Setup CMake install for klib" ${PROJECT_IS_TOP_LEVEL})
 
 option(KLIB_BUILD_TESTS "Build klib tests" ${PROJECT_IS_TOP_LEVEL})
 
@@ -22,26 +23,6 @@ function(klib_set_mainCRTStartup TARGET)
 endfunction()
 
 add_subdirectory(lib)
-
-if(KLIB_INSTALL)
-  message(STATUS "[${package_name}] setting up install")
-  include(GNUInstallDirs)
-
-  set(install_dst "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
-
-  install(
-    TARGETS ${package_name} ${package_name}-test-main
-    EXPORT ${package_name}-targets
-    FILE_SET HEADERS
-  )
-
-  install(
-    EXPORT ${package_name}-targets
-    DESTINATION "${install_dst}"
-    NAMESPACE ${package_name}::
-    FILE ${package_name}-config.cmake
-  )
-endif()
 
 if(KLIB_BUILD_TESTS)
   enable_testing()

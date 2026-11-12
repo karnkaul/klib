@@ -1,5 +1,4 @@
-#include "klib/core/visitor.hpp"
-#include <variant>
+import klib.core;
 
 namespace {
 struct A {};

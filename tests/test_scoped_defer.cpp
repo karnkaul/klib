@@ -1,4 +1,5 @@
-#include "klib/core/scoped_defer.hpp"
+import klib.core;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {

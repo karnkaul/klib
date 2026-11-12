@@ -1,4 +1,5 @@
-#include "klib/core/string/fixed_string.hpp"
+import klib.core.string;
+
 #include "klib/unit_test/unit_test.hpp"
 
 namespace {

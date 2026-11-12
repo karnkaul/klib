@@ -1,8 +1,28 @@
-#include "klib/unit_test/unit_test.hpp"
-#include <cstdlib>
-#include <print>
-#include <string_view>
-#include <vector>
+export module klib.unit_test;
+
+export import std;
+
+export namespace klib::unit_test {
+void check_expect(bool pred, std::string_view expr, std::string_view file, int line);
+void check_assert(bool pred, std::string_view expr, std::string_view file, int line);
+
+struct TestCase {
+	virtual ~TestCase() = default;
+
+	TestCase(TestCase const&) = delete;
+	TestCase(TestCase&&) = delete;
+	auto operator=(TestCase const&) = delete;
+	auto operator=(TestCase&&) = delete;
+
+	explicit TestCase(std::string_view name);
+
+	virtual void run() const = 0;
+
+	std::string_view name{};
+};
+
+auto run_tests(std::span<char const* const> args) -> int;
+} // namespace klib::unit_test
 
 namespace klib {
 namespace unit_test {
@@ -45,7 +65,7 @@ void check_failed(std::string_view const type,
 				  std::string_view const expr,
 				  std::string_view const file,
 				  int const line) {
-	std::println(stderr, "{} failed: '{}' [{}:{}]", type, expr, file, line);
+	std::println(std::cerr, "{} failed: '{}' [{}:{}]", type, expr, file, line);
 	State::self().failure = true;
 }
 } // namespace
@@ -90,10 +110,10 @@ auto unit_test::run_tests(std::span<char const* const> args) -> int {
 
 	if (state.failure) {
 		std::println("FAILED");
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	std::println("passed");
-	return EXIT_SUCCESS;
+	return 0;
 }
 } // namespace klib
