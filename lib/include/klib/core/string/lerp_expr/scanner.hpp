@@ -1,6 +1,6 @@
 #pragma once
 #include "klib/core/assert.hpp"
-#include "klib/core/lerp_expr/token.hpp"
+#include "klib/core/string/lerp_expr/token.hpp"
 #include <cstddef>
 
 namespace klib::lerp_expr {
