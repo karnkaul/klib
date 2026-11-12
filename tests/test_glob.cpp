@@ -1,4 +1,4 @@
-import klib.core.string;
+import klib.string;
 
 #include "klib/unit_test/unit_test.hpp"
 

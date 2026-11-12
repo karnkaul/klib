@@ -39,17 +39,26 @@ target_sources(${package_name} PUBLIC FILE_SET HEADERS
 
 target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
   FILES
-  src/core_string.cppm
-  src/core.cppm
-  src/log.cppm
-  src/cli.cppm
-  src/task.cppm
-  src/unit_test.cppm
+  public/string.cppm
+  public/core.cppm
+  public/log.cppm
+  public/cli.cppm
+  public/task.cppm
+  public/unit_test.cppm
 )
 
 target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
   BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}"
   FILES "${CMAKE_CURRENT_BINARY_DIR}/${version_module}"
+)
+
+target_sources(${package_name} PRIVATE
+  src/string.cpp
+  src/core.cpp
+  src/cli.cpp
+  src/log.cpp
+  src/task.cpp
+  src/unit_test.cpp
 )
 
 add_library(${package_name}-test-main)

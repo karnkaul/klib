@@ -61,7 +61,7 @@ TEST_CASE(task_queue_drain_restart) {
 	}
 
 	auto tasks = std::array<WaitTask, run_count_v>{};
-	auto to_enqueue = std::array<Task*, run_count_v>{};
+	auto to_enqueue = std::array<klib::Ptr<Task>, run_count_v>{};
 	for (auto [in, out] : std::views::zip(tasks, to_enqueue)) {
 		out = &in;
 	}
