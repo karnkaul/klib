@@ -44,6 +44,7 @@ target_sources(${package_name} PUBLIC FILE_SET CXX_MODULES
   public/log.cppm
   public/cli.cppm
   public/task.cppm
+  public/klib.cppm
   public/unit_test.cppm
 )
 
